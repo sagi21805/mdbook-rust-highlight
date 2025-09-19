@@ -5,6 +5,7 @@ edition = "2024"
 authors = ["Sagi21805 <sagi21805@gmail.com>"]
 description = "Rust syntax highlighter for mdbook code blocks"
 license = "MIT"
-homepage = "https://github.com"
+homepage = "https://github.com/sagi21805/mdbook-rust-highlight"
+repository = "https://github.com/sagi21805/mdbook-rust-highlight"
 
 [dependencies]
