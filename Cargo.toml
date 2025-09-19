@@ -1,0 +1,10 @@
+[package]
+name = "mdbook-rust-highlight"
+version = "0.1.0"
+edition = "2024"
+authors = ["Sagi21805 <sagi21805@gmail.com>"]
+description = "Rust syntax highlighter for mdbook code blocks"
+license = "MIT"
+homepage = "https://github.com"
+
+[dependencies]
