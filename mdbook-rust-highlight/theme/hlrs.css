@@ -1,26 +1,22 @@
-.hlrs-FnName {
+.hlrs-Function {
     color: #61afef;
 }
 
-.hlrs-Abi,
 .hlrs-String {
     color: #98c379;
 }
 
-.hlrs-Unsafety,
-.hlrs-Constness,
-.hlrs-Extern,
-.hlrs-Fn,
 .hlrs-Keyword {
     color: #c678dd;
 }
 
+.hlrs-ReturnType,
 .hlrs-FnType,
 .hlrs-Type {
     color: #e5c07b;
 }
 
-.hlrs-FnArg {
+.hlrs-Ident {
     color: #e06c75
 }
 

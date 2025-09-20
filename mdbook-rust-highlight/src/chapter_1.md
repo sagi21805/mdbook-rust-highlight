@@ -41,7 +41,7 @@ fn main() {
 ```hlrs,fp=main.rs,icon=@https://icons.veryicon.com/png/o/business/vscode-program-item-icon/assembly-7.png
 
 
-pub unsafe extern "C" fn function(a: b, c: D) {}
+pub const async unsafe extern "C" fn function(a: b, mut c: D) -> TestType {}
 ```
 
 
