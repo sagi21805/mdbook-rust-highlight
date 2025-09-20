@@ -1,32 +1,33 @@
 use std::collections::BTreeMap;
 
 use ropey::Rope;
-use syn::{File, spanned::Spanned, visit::Visit};
+use strum_macros::AsRefStr;
+use syn::{File, FnArg, spanned::Spanned, visit::Visit};
 
 /// Token mapping with
-
+#[derive(AsRefStr)]
 pub enum TokenTag {
     Visibility,
     Abi,
     Fn,
     EndOfToken,
     Extern,
-}
-
-macro_rules! token_string {
-    ($name:ident) => {
-        String::from(concat!("<span class=\"hlrs-", stringify!($name), "\">").to_lowercase())
-    };
+    Asyncness,
+    Constness,
+    Unsafety,
+    FnName,
+    FnArg,
+    SelfToken,
+    Variadic,
+    FnType,
+    LifeTime,
 }
 
 impl ToString for TokenTag {
     fn to_string(&self) -> String {
         match self {
             Self::EndOfToken => String::from("</span>"),
-            Self::Visibility => token_string!(Visibility),
-            Self::Extern => token_string!(Extern),
-            Self::Fn => token_string!(Fn),
-            Self::Abi => token_string!(Abi),
+            _ => format!("<span class=\"hlrs-{}\">", self.as_ref()),
         }
     }
 }
@@ -38,12 +39,27 @@ struct Highlighter {
 
 impl<'ast> Visit<'ast> for Highlighter {
     fn visit_signature(&mut self, i: &'ast syn::Signature) {
-        match &i.abi {
-            Some(a) => {
-                self.insert_token(a.extern_token, TokenTag::Extern);
-                self.insert_token(a.name.clone().unwrap(), TokenTag::Abi);
+        if let Some(abi) = &i.abi {
+            self.insert_token(abi.extern_token, TokenTag::Extern);
+            self.try_insert_token(abi.name.clone(), TokenTag::Abi);
+        }
+        self.try_insert_token(i.asyncness, TokenTag::Asyncness);
+        self.try_insert_token(i.constness, TokenTag::Constness);
+        self.try_insert_token(i.unsafety, TokenTag::Unsafety);
+        self.try_insert_token(i.variadic.clone(), TokenTag::Variadic);
+        self.insert_token(i.fn_token, TokenTag::Fn);
+        self.insert_token(i.ident.clone(), TokenTag::FnName);
+        for input in &i.inputs {
+            match input {
+                FnArg::Receiver(arg) => {
+                    self.insert_token(arg.self_token, TokenTag::SelfToken);
+                    self.insert_token(arg.lifetime(), TokenTag::LifeTime);
+                }
+                FnArg::Typed(arg) => {
+                    self.insert_token(arg.pat.clone(), TokenTag::FnArg);
+                    self.insert_token(arg.ty.clone(), TokenTag::FnType);
+                }
             }
-            None => {}
         }
     }
 }
@@ -76,6 +92,12 @@ impl Highlighter {
         let (start_idx, end_idx) = self.span_position(token);
         self.token_map.insert(start_idx, tag);
         self.token_map.insert(end_idx, TokenTag::EndOfToken);
+    }
+
+    fn try_insert_token(&mut self, token: Option<impl Spanned>, tag: TokenTag) {
+        if let Some(t) = token {
+            self.insert_token(t, tag);
+        }
     }
 
     fn highlight_rust_code(code: &str) -> Self {
