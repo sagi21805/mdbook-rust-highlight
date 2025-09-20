@@ -9,3 +9,13 @@ homepage = "https://github.com/sagi21805/mdbook-rust-highlight"
 repository = "https://github.com/sagi21805/mdbook-rust-highlight"
 
 [dependencies]
+syn = { version = "2.0", features = ["full", "visit"] }
+ropey = "1.6.1"
+proc-macro2 = { version = "1", default-features = false, features = [
+    "span-locations",
+] }
+strum = "0.26"
+strum_macros = "0.26"
+mdbook = "0.4.52"
+serde_json = "1.0.145"
+regex = "1.11.2"

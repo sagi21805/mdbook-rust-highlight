@@ -1,0 +1,30 @@
+.hlrs-FnName {
+    color: #61afef;
+}
+
+.hlrs-Abi,
+.hlrs-String {
+    color: #98c379;
+}
+
+.hlrs-Unsafety,
+.hlrs-Constness,
+.hlrs-Extern,
+.hlrs-Fn,
+.hlrs-Keyword {
+    color: #c678dd;
+}
+
+.hlrs-FnType,
+.hlrs-Type {
+    color: #e5c07b;
+}
+
+.hlrs-FnArg {
+    color: #e06c75
+}
+
+.hlrs-Comment {
+    color: #5c6370;
+    font-style: italic;
+}
