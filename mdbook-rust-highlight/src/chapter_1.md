@@ -1,5 +1,5 @@
 # Chapter 1
-```hlrs
+```hlrs,fp=testing/testing.rs
 
 fn test() {
 

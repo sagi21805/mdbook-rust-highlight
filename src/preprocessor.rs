@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use mdbook::{
     BookItem,
-    book::Book,
+    book::{Book, Chapter},
     preprocess::{Preprocessor, PreprocessorContext},
 };
 use regex::Regex;
@@ -12,93 +12,91 @@ use crate::highlighter::RustHighlighter;
 
 pub struct RustHighlighterPreprocessor;
 
+const HLRS_CODEBLOCK_REGEX: &str = r"```hlrs(?:,([^\n]*))?\n([\s\S]*?)\n```";
+const RUST_ICON_URL: &str = "@https://www.rust-lang.org/static/images/rust-logo-blk.svg";
+
 impl Preprocessor for RustHighlighterPreprocessor {
     fn name(&self) -> &str {
         "rust-highlight"
     }
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
         // Regex matches entire Rust code blocks including fences
-        let rust_block_regex = Regex::new(r"```hlrs(?:,([^\n]*))?\n([\s\S]*?)\n```").unwrap();
-
+        let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
         for item in &mut book.sections {
             if let BookItem::Chapter(chapter) = item {
-                const FULL: usize = 0;
-                const WHICHLANG_FEATURES: usize = 1;
-                const CODE: usize = 2;
-
-                // map from regex start pos, (before end, after str)
-                let mut regex_map: BTreeMap<usize, (usize, String)> = BTreeMap::new();
-                let mut chapter_rope = Rope::from_str(&chapter.content);
-                for m in rust_block_regex.captures_iter(&chapter.content) {
-                    let start_position = m.get(FULL).unwrap().start();
-                    let end_position = m.get(FULL).unwrap().end();
-                    let code_capture = match m.get(CODE) {
-                        Some(c) => c,
-                        None => continue,
-                    };
-                    let features = match self.whichlang_features(ctx, m.get(WHICHLANG_FEATURES)) {
-                        Some(feature_map) => {
-                            let mut feature_string = String::from("");
-                            for (feature, value) in feature_map {
-                                feature_string.push_str(&format!("{feature}={value} "));
-                            }
-                            eprintln!("{}", feature_string);
-                            feature_string
-                        }
-                        None => String::from(""),
-                    };
-
-                    let code = code_capture.as_str();
-                    let highlighted = RustHighlighter::highlight_rust_code(code);
-                    let html = format!(
-                        "<pre><code class=\"language-hlrs {}\">{}</code></pre>",
-                        features, highlighted
-                    );
-                    regex_map.insert(start_position, (end_position, html));
-                }
-
-                let mut offset = 0;
-                for (start, (end, after)) in regex_map {
-                    chapter_rope.remove((start + offset)..(end + offset));
-                    chapter_rope.insert(start + offset, &after);
-                    offset += after.len() - (end - start);
-                }
-
-                chapter.content = chapter_rope.to_string();
+                let registered_blocks = self.register_codeblock(ctx, chapter, &block_pat);
+                Self::write_codeblock(chapter, registered_blocks);
             }
         }
-
         Ok(book)
     }
 }
 
 impl RustHighlighterPreprocessor {
+    fn register_codeblock(
+        &self,
+        ctx: &PreprocessorContext,
+        chapter: &Chapter,
+        pattern: &Regex,
+    ) -> BTreeMap<usize, (usize, String)> {
+        const GROUP_FULL: usize = 0;
+        const GROUP_FEATURES: usize = 1;
+        const GROUP_CODE: usize = 2;
+
+        let mut chap_replacement = BTreeMap::new();
+
+        for caps in pattern.captures_iter(&chapter.content) {
+            let full = caps.get(GROUP_FULL).unwrap();
+            let code_match = match caps.get(GROUP_CODE) {
+                Some(m) => m,
+                None => continue,
+            };
+
+            let features = self.whichlang_features(ctx, caps.get(GROUP_FEATURES));
+
+            let code = code_match.as_str();
+            let highlighted = RustHighlighter::highlight(code);
+            let html =
+                format!("<pre><code class=\"language-hlrs {features}\">{highlighted}</code></pre>");
+
+            chap_replacement.insert(full.start(), (full.end(), html));
+        }
+        chap_replacement
+    }
+
+    fn write_codeblock(chapter: &mut Chapter, registered_blocks: BTreeMap<usize, (usize, String)>) {
+        let mut chap_rope = Rope::from_str(&chapter.content);
+        let mut offset = 0;
+        for (start, (end, replacement)) in registered_blocks {
+            chap_rope.remove((start + offset)..(end + offset));
+            chap_rope.insert(start + offset, &replacement);
+            offset += replacement.len() - (end - start);
+        }
+        chapter.content = chap_rope.to_string();
+    }
+
     fn whichlang_features<'a>(
         &self,
         ctx: &PreprocessorContext,
         f: Option<regex::Match<'a>>,
-    ) -> Option<BTreeMap<&'a str, String>> {
+    ) -> String {
         if let Some(cfg) = ctx.config.get(&format!("preprocessor.{}", self.name())) {
-            cfg.get("whichlang")?
-                .as_bool()
-                .expect("\nERROR: whichlang configuration should be a boolean");
+            match cfg.get("whichlang") {
+                Some(feature) => feature
+                    .as_bool()
+                    .expect("\nERROR: `whichlang` configuration should be a boolean"),
+                None => return String::from(""),
+            };
         }
-        let mut default: BTreeMap<&str, String> = BTreeMap::new();
-        default.insert(
-            "icon",
-            String::from("@https://www.rust-lang.org/static/images/rust-logo-blk.svg"),
-        );
 
-        let features = match f {
-            Some(feature) => feature.as_str().split(','),
-            None => return Some(default),
+        let mut feature_string = match f {
+            Some(feature) => feature.as_str().replace(',', " "),
+            None => String::from(""),
         };
-        for feature in features {
-            let feature_parts: Vec<&str> = feature.split('=').collect();
-            let feat = feature_parts[0];
-            let val = String::from(feature_parts[1]);
-            default.insert(feat, val);
+        if !feature_string.contains("icon=@https://") {
+            feature_string.push_str(" icon=");
+            feature_string.push_str(RUST_ICON_URL);
         }
-        Some(default)
+        return feature_string;
     }
 }

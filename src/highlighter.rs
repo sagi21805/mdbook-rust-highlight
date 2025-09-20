@@ -13,24 +13,24 @@ pub struct RustHighlighter {
 impl<'ast> Visit<'ast> for RustHighlighter {
     fn visit_signature(&mut self, i: &'ast syn::Signature) {
         if let Some(abi) = &i.abi {
-            self.insert_token(abi.extern_token, TokenTag::Extern);
-            self.try_insert_token(abi.name.clone(), TokenTag::Abi);
+            self.register_token(abi.extern_token, TokenTag::Extern);
+            self.try_register_token(abi.name.clone(), TokenTag::Abi);
         }
-        self.try_insert_token(i.asyncness, TokenTag::Asyncness);
-        self.try_insert_token(i.constness, TokenTag::Constness);
-        self.try_insert_token(i.unsafety, TokenTag::Unsafety);
-        self.try_insert_token(i.variadic.clone(), TokenTag::Variadic);
-        self.insert_token(i.fn_token, TokenTag::Fn);
-        self.insert_token(i.ident.clone(), TokenTag::FnName);
+        self.try_register_token(i.asyncness, TokenTag::Asyncness);
+        self.try_register_token(i.constness, TokenTag::Constness);
+        self.try_register_token(i.unsafety, TokenTag::Unsafety);
+        self.try_register_token(i.variadic.clone(), TokenTag::Variadic);
+        self.register_token(i.fn_token, TokenTag::Fn);
+        self.register_token(i.ident.clone(), TokenTag::FnName);
         for input in &i.inputs {
             match input {
                 FnArg::Receiver(arg) => {
-                    self.insert_token(arg.self_token, TokenTag::SelfToken);
-                    self.insert_token(arg.lifetime(), TokenTag::LifeTime);
+                    self.register_token(arg.self_token, TokenTag::SelfToken);
+                    self.register_token(arg.lifetime(), TokenTag::LifeTime);
                 }
                 FnArg::Typed(arg) => {
-                    self.insert_token(arg.pat.clone(), TokenTag::FnArg);
-                    self.insert_token(arg.ty.clone(), TokenTag::FnType);
+                    self.register_token(arg.pat.clone(), TokenTag::FnArg);
+                    self.register_token(arg.ty.clone(), TokenTag::FnType);
                 }
             }
         }
@@ -61,19 +61,19 @@ impl RustHighlighter {
         )
     }
 
-    fn insert_token(&mut self, token: impl Spanned, tag: TokenTag) {
+    fn register_token(&mut self, token: impl Spanned, tag: TokenTag) {
         let (start_idx, end_idx) = self.span_position(token);
         self.token_map.insert(start_idx, tag);
         self.token_map.insert(end_idx, TokenTag::EndOfToken);
     }
 
-    fn try_insert_token(&mut self, token: Option<impl Spanned>, tag: TokenTag) {
+    fn try_register_token(&mut self, token: Option<impl Spanned>, tag: TokenTag) {
         if let Some(t) = token {
-            self.insert_token(t, tag);
+            self.register_token(t, tag);
         }
     }
 
-    pub fn highlight_rust_code(code: &str) -> String {
+    pub fn highlight(code: &str) -> String {
         let syntax_tree: File =
             syn::parse_str(code).expect(&format!("Failed to parse Rust code {}", code));
 
