@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::tokens::TokenTag;
-use proc_macro2::{TokenStream, TokenTree};
+use proc_macro2::{Spacing, TokenStream, TokenTree};
 use ropey::Rope;
 use syn::{
     Block, Expr, ExprForLoop, ExprLit, ExprUnsafe, File, FnArg, Item, Lit, LitStr, Local,
@@ -69,7 +69,6 @@ impl RustHighlighter {
     fn write_tokens(&mut self) {
         let mut tok_offset: usize = 0;
         for (index, token) in &self.token_map {
-            eprintln!("index: {}, token: {:?}", index, token as *const _ as u8);
             let tag = token.to_string();
             self.output.insert(index + tok_offset, tag.as_str());
             tok_offset += tag.len();
@@ -89,7 +88,6 @@ impl RustHighlighter {
 
     pub(crate) fn register_token(&mut self, token: &impl Spanned, tag: TokenTag) {
         let (start_idx, end_idx) = self.span_position(token);
-        eprintln!("REGISTERD: s: {}, e: {}", start_idx, end_idx);
         self.token_map.insert(start_idx, tag);
         self.token_map.insert(end_idx, TokenTag::EndOfToken);
     }
@@ -171,8 +169,13 @@ impl RustHighlighter {
 
     fn register_macro_statement(&mut self, token: &StmtMacro) {
         // TODO NEED CHANGE TO RENDER PATH CORRECTLY AND TO PARSE TOKEN TREE BETTER WITH SPECIFIC KEY WORD FOR BUILTIN MACROS
-        self.register_macro(&token.mac.path);
-        // self.register_macro(&token.mac.bang_token);
+        let span = token
+            .mac
+            .path
+            .span()
+            .join(token.mac.bang_token.span)
+            .unwrap();
+        self.register_macro(&span);
         for token in token.mac.tokens.clone() {
             if let TokenTree::Literal(lit) = token {
                 if let Ok(_) = syn::parse_str::<LitStr>(&lit.to_string()) {
