@@ -2,12 +2,18 @@
     color: #61afef;
 }
 
+.hlrs-LitStr,
 .hlrs-String {
     color: #98c379;
 }
 
 .hlrs-Keyword {
     color: #c678dd;
+}
+
+.hlrs-Macro,
+.hlrs-LitNum {
+    color: #d19a66;
 }
 
 .hlrs-ReturnType,
