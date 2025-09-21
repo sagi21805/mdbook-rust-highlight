@@ -8,6 +8,9 @@ license = "MIT"
 homepage = "https://github.com/sagi21805/mdbook-rust-highlight"
 repository = "https://github.com/sagi21805/mdbook-rust-highlight"
 
+[lib]
+proc-macro = true
+
 [dependencies]
 syn = "2.0"
 proc-macro2 = "1"
