@@ -3,19 +3,14 @@ use strum_macros::AsRefStr;
 /// Token mapping with
 #[derive(AsRefStr)]
 pub enum TokenTag {
-    Visibility,
-    Abi,
-    Fn,
+    Keyword,
+    Ident,
+    String,
+    Literal,
     EndOfToken,
-    Extern,
-    Asyncness,
-    Constness,
-    Unsafety,
-    FnName,
-    FnArg,
+    Function,
     SelfToken,
-    Variadic,
-    FnType,
+    Type,
     LifeTime,
 }
 
