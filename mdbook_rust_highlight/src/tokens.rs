@@ -1,15 +1,20 @@
+use crate::highlighter::RustHighlighter;
+use mdbook_rust_highlight_derive::{make_register_wrappers, register_variants};
 use strum_macros::AsRefStr;
 
 /// Token mapping with
-#[derive(AsRefStr)]
+#[register_variants]
+#[derive(AsRefStr, Debug)]
 pub enum TokenTag {
     Keyword,
     Ident,
-    String,
-    Literal,
+    LitStr,
+    LitNum,
+    LitBool,
     EndOfToken,
     Function,
     SelfToken,
+    Macro,
     Type,
     LifeTime,
 }

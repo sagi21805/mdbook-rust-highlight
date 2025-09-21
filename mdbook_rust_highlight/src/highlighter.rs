@@ -1,30 +1,16 @@
 use std::collections::BTreeMap;
 
 use crate::tokens::TokenTag;
-use paste::paste;
+use proc_macro2::{TokenStream, TokenTree};
 use ropey::Rope;
 use syn::{
-    spanned::Spanned, token::Token, visit::Visit, Expr, File, FnArg, Ident, Item, Lifetime, LitStr,
-    Local, LocalInit, Pat, PatIdent, PatType, Stmt, StmtMacro,
+    Block, Expr, ExprForLoop, ExprLit, ExprUnsafe, File, FnArg, Item, Lit, LitStr, Local,
+    LocalInit, Pat, PatIdent, PatReference, PatType, Stmt, StmtMacro, spanned::Spanned,
+    visit::Visit,
 };
 
-macro_rules! make_register_wrappers {
-    ($name:ident, $ty:ty) => {
-        paste! {
-            #[allow(dead_code)]
-            fn [<register_ $name _box>](&mut self, v: &Box<$ty>) {
-                self.[<register_ $name _ref>](v.as_ref());
-            }
+use mdbook_rust_highlight_derive::make_register_wrappers;
 
-            #[allow(dead_code)]
-            fn [<try_register_ $name>](&mut self, v: Option<&$ty>) {
-                if let Some(v) = v {
-                    self.[<register_ $name _ref>](v);
-                }
-            }
-        }
-    };
-}
 pub struct RustHighlighter {
     output: Rope,
     token_map: BTreeMap<usize, TokenTag>,
@@ -36,20 +22,20 @@ impl<'ast> Visit<'ast> for RustHighlighter {
         self.try_register_keyword(i.asyncness.as_ref());
         self.try_register_keyword(i.unsafety.as_ref());
         if let Some(abi) = &i.abi {
-            self.register_keyword_ref(&abi.extern_token);
-            self.try_register_string(abi.name.as_ref());
+            self.register_keyword(&abi.extern_token);
+            self.try_register_litstr(abi.name.as_ref());
         }
-        self.register_keyword_ref(&i.fn_token);
-        self.register_token_ref(&i.ident, TokenTag::Function);
+        self.register_keyword(&i.fn_token);
+        self.register_token(&i.ident, TokenTag::Function);
         for input in &i.inputs {
             match input {
                 FnArg::Receiver(arg) => {
-                    self.register_token_ref(&arg.self_token, TokenTag::SelfToken);
+                    self.register_token(&arg.self_token, TokenTag::SelfToken);
                     self.try_register_lifetime(arg.lifetime());
                 }
                 FnArg::Typed(type_pat) => {
-                    self.register_type_pattern_ref(type_pat);
-                    self.register_token_ref(&type_pat.ty, TokenTag::Type);
+                    self.register_type_pattern(type_pat);
+                    self.register_token(&type_pat.ty, TokenTag::Type);
                 }
             }
         }
@@ -57,36 +43,35 @@ impl<'ast> Visit<'ast> for RustHighlighter {
         // TODO: Make right for all return types, some are more complicated
         match i.output.clone() {
             syn::ReturnType::Default => {}
-            syn::ReturnType::Type(_, t) => self.register_token_ref(&t, TokenTag::Type),
+            syn::ReturnType::Type(_, t) => self.register_token(&t, TokenTag::Type),
         }
     }
 
     fn visit_abi(&mut self, i: &'ast syn::Abi) {
-        self.register_keyword_ref(&i.extern_token);
-        self.try_register_string(i.name.as_ref());
+        self.register_keyword(&i.extern_token);
+        self.try_register_litstr(i.name.as_ref());
     }
 
     fn visit_expr_async(&mut self, i: &'ast syn::ExprAsync) {
-        self.register_keyword_ref(&i.async_token);
+        self.register_keyword(&i.async_token);
     }
 
     fn visit_visibility(&mut self, i: &'ast syn::Visibility) {
-        self.register_keyword_ref(i);
+        self.register_keyword(i);
     }
 
     fn visit_block(&mut self, i: &'ast syn::Block) {
-        for statement in &i.stmts {
-            self.register_statement_ref(statement);
-        }
+        self.register_block(i);
     }
 }
 
 impl RustHighlighter {
     fn write_tokens(&mut self) {
         let mut tok_offset: usize = 0;
-        for (key, val) in &self.token_map {
-            let tag = val.to_string();
-            self.output.insert(key + tok_offset, tag.as_str());
+        for (index, token) in &self.token_map {
+            eprintln!("index: {}, token: {:?}", index, token as *const _ as u8);
+            let tag = token.to_string();
+            self.output.insert(index + tok_offset, tag.as_str());
             tok_offset += tag.len();
         }
     }
@@ -98,96 +83,142 @@ impl RustHighlighter {
     /// TODO: assuming same line, create tests to assert this assumption
     fn span_position(&self, span: &impl Spanned) -> (usize, usize) {
         // lines are 1 indexed instead of zero.
-        let start_line = self.output.line_to_char(span.span().start().line - 1);
-        (
-            start_line + span.span().start().column,
-            start_line + span.span().end().column,
-        )
+        let span = span.span().byte_range();
+        (span.start, span.end)
     }
 
-    fn register_token_ref(&mut self, token: &impl Spanned, tag: TokenTag) {
+    pub(crate) fn register_token(&mut self, token: &impl Spanned, tag: TokenTag) {
         let (start_idx, end_idx) = self.span_position(token);
+        eprintln!("REGISTERD: s: {}, e: {}", start_idx, end_idx);
         self.token_map.insert(start_idx, tag);
         self.token_map.insert(end_idx, TokenTag::EndOfToken);
     }
 
-    fn register_string_ref(&mut self, v: &LitStr) {
-        self.register_token_ref(v, TokenTag::String);
-    }
-
-    make_register_wrappers!(string, LitStr);
-
-    fn register_ident_ref(&mut self, v: &Ident) {
-        self.register_token_ref(v, TokenTag::Ident);
-    }
-
-    fn register_statement_ref(&mut self, v: &Stmt) {
-        match v {
-            syn::Stmt::Local(l) => {
-                self.register_local_ref(l);
+    #[make_register_wrappers]
+    fn register_statement(&mut self, token: &Stmt) {
+        match token {
+            syn::Stmt::Local(token) => {
+                self.register_local(token);
             }
-            syn::Stmt::Expr(e, _) => {}
-            syn::Stmt::Macro(m) => {}
+            syn::Stmt::Expr(token, _) => {
+                self.register_expr(token);
+            }
+            syn::Stmt::Macro(token) => {
+                self.register_macro_statement(token);
+            }
             syn::Stmt::Item(i) => {}
         }
     }
 
-    make_register_wrappers!(statement, Stmt);
-
-    fn register_local_ref(&mut self, v: &Local) {
-        self.register_keyword_ref(&v.let_token);
-        self.register_pattern_ref(&v.pat);
-        self.try_register_local_init(v.init.as_ref());
+    #[make_register_wrappers]
+    fn register_local(&mut self, token: &Local) {
+        self.register_keyword(&token.let_token);
+        self.register_pattern(&token.pat);
+        self.try_register_local_init(token.init.as_ref());
     }
 
-    make_register_wrappers!(local, Local);
-
-    fn register_expr_ref(&mut self, v: &Expr) {}
-
-    fn register_macro_ref(&mut self, v: &StmtMacro) {}
-
-    fn register_item_ref(&mut self, v: Item) {}
-
-    fn register_pattern_ref(&mut self, pattern: &Pat) {
-        match pattern {
-            syn::Pat::Ident(i) => {
-                self.register_pat_ident_ref(i);
+    fn register_literal(&mut self, token: &ExprLit) {
+        match &token.lit {
+            Lit::Int(_) | Lit::Float(_) => {
+                self.register_litnum(&token.lit);
+            }
+            Lit::Bool(_) => {
+                self.register_litbool(&token.lit);
+            }
+            Lit::Byte(_) | Lit::ByteStr(_) | Lit::CStr(_) | Lit::Char(_) | Lit::Str(_) => {
+                self.register_litstr(&token.lit)
             }
             _ => {}
         }
     }
 
-    make_register_wrappers!(pattern, Pat);
-
-    fn register_local_init_ref(&mut self, init: &LocalInit) {}
-
-    make_register_wrappers!(local_init, LocalInit);
-
-    fn register_pat_ident_ref(&mut self, pattern: &PatIdent) {
-        self.try_register_keyword(pattern.by_ref.as_ref());
-        self.try_register_keyword(pattern.mutability.as_ref());
-        self.register_token_ref(&pattern.ident, TokenTag::Ident);
+    #[make_register_wrappers]
+    fn register_block(&mut self, token: &Block) {
+        for statement in &token.stmts {
+            self.register_statement(&statement);
+        }
     }
 
-    make_register_wrappers!(pat_ident, PatIdent);
-
-    fn register_type_pattern_ref(&mut self, pattern: &PatType) {
-        self.register_pattern_box(&pattern.pat);
+    #[make_register_wrappers]
+    fn register_for_loop(&mut self, token: &ExprForLoop) {
+        self.register_keyword(&token.for_token);
+        self.register_pattern(&token.pat);
+        self.register_keyword(&token.in_token);
+        self.register_expr_box(&token.expr);
+        self.register_block(&token.body);
     }
 
-    make_register_wrappers!(type_pattern, PatType);
-
-    fn register_lifetime_ref(&mut self, lifetime: &Lifetime) {
-        self.register_token_ref(lifetime, TokenTag::LifeTime);
+    #[make_register_wrappers]
+    fn register_expr(&mut self, token: &Expr) {
+        match token {
+            Expr::Lit(token) => {
+                self.register_literal(token);
+            }
+            Expr::ForLoop(token) => {
+                self.register_for_loop(token);
+            }
+            Expr::Unsafe(token) => {
+                self.register_unsafe_expr(token);
+            }
+            _ => self.register_ident(&token),
+        }
     }
 
-    make_register_wrappers!(lifetime, Lifetime);
-
-    fn register_keyword_ref(&mut self, token: &impl Spanned) {
-        self.register_token_ref(token, TokenTag::Keyword);
+    fn register_unsafe_expr(&mut self, token: &ExprUnsafe) {
+        self.register_keyword(&token.unsafe_token);
+        self.register_block(&token.block);
     }
 
-    make_register_wrappers!(keyword, impl Spanned);
+    fn register_macro_statement(&mut self, token: &StmtMacro) {
+        // TODO NEED CHANGE TO RENDER PATH CORRECTLY AND TO PARSE TOKEN TREE BETTER WITH SPECIFIC KEY WORD FOR BUILTIN MACROS
+        self.register_macro(&token.mac.path);
+        // self.register_macro(&token.mac.bang_token);
+        for token in token.mac.tokens.clone() {
+            if let TokenTree::Literal(lit) = token {
+                if let Ok(_) = syn::parse_str::<LitStr>(&lit.to_string()) {
+                    self.register_litstr(&lit);
+                }
+            }
+        }
+    }
+
+    fn register_item(&mut self, token: &Item) {}
+
+    #[make_register_wrappers]
+    fn register_pattern(&mut self, token: &Pat) {
+        match token {
+            Pat::Ident(i) => {
+                self.register_pat_ident(i);
+            }
+            Pat::Reference(r) => {
+                self.register_reference(r);
+            }
+            _ => {}
+        }
+    }
+
+    #[make_register_wrappers]
+    fn register_reference(&mut self, token: &PatReference) {
+        self.try_register_keyword(token.mutability.as_ref());
+        self.register_pattern_box(&token.pat);
+    }
+
+    #[make_register_wrappers]
+    fn register_local_init(&mut self, token: &LocalInit) {
+        self.register_expr_box(&token.expr);
+    }
+
+    #[make_register_wrappers]
+    fn register_pat_ident(&mut self, token: &PatIdent) {
+        self.try_register_keyword(token.by_ref.as_ref());
+        self.try_register_keyword(token.mutability.as_ref());
+        self.register_token(&token.ident, TokenTag::Ident);
+    }
+
+    #[make_register_wrappers]
+    fn register_type_pattern(&mut self, token: &PatType) {
+        self.register_pattern_box(&token.pat);
+    }
 
     pub fn highlight(code: &str) -> String {
         let syntax_tree: File =
