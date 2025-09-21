@@ -61,7 +61,7 @@ pub fn register_variants(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         quote! {
             #[make_register_wrappers]
-            pub(crate) fn #method_name(&mut self, token: &(impl syn::spanned::Spanned + syn::__private::ToTokens)) {
+            pub(crate) fn #method_name(&mut self, token: &(impl syn::spanned::Spanned)) {
                 self.register_token(token, #enum_name::#variant_name);
             }
         }
