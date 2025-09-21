@@ -1,0 +1,14 @@
+[package]
+name = "mdbook_rust_highlight_derive"
+version = "0.1.0"
+edition = "2024"
+authors = ["Sagi21805 <sagi21805@gmail.com>"]
+description = "Derive macros for mdbook-rust-highlight crate"
+license = "MIT"
+homepage = "https://github.com/sagi21805/mdbook-rust-highlight"
+repository = "https://github.com/sagi21805/mdbook-rust-highlight"
+
+[dependencies]
+syn = "2.0"
+proc-macro2 = "1"
+quote = "1"

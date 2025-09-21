@@ -1,5 +1,0 @@
-[book]
-authors = ["sagi21805"]
-language = "en"
-src = "src"
-title = "mdbook-rust-highlight-test"

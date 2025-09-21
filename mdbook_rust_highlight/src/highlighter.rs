@@ -4,8 +4,8 @@ use crate::tokens::TokenTag;
 use paste::paste;
 use ropey::Rope;
 use syn::{
-    Expr, File, FnArg, Ident, Item, Lifetime, LitStr, Local, LocalInit, Pat, Stmt, StmtMacro,
-    spanned::Spanned, token::Token, visit::Visit,
+    spanned::Spanned, token::Token, visit::Visit, Expr, File, FnArg, Ident, Item, Lifetime, LitStr,
+    Local, LocalInit, Pat, PatIdent, PatType, Stmt, StmtMacro,
 };
 
 macro_rules! make_register_wrappers {
@@ -48,7 +48,7 @@ impl<'ast> Visit<'ast> for RustHighlighter {
                     self.try_register_lifetime(arg.lifetime());
                 }
                 FnArg::Typed(type_pat) => {
-                    self.register_type_pattern(type_pat);
+                    self.register_type_pattern_ref(type_pat);
                     self.register_token_ref(&type_pat.ty, TokenTag::Type);
                 }
             }
@@ -76,7 +76,7 @@ impl<'ast> Visit<'ast> for RustHighlighter {
 
     fn visit_block(&mut self, i: &'ast syn::Block) {
         for statement in &i.stmts {
-            self.register_statement(statement);
+            self.register_statement_ref(statement);
         }
     }
 }
@@ -121,7 +121,7 @@ impl RustHighlighter {
         self.register_token_ref(v, TokenTag::Ident);
     }
 
-    fn register_statement(&mut self, v: &Stmt) {
+    fn register_statement_ref(&mut self, v: &Stmt) {
         match v {
             syn::Stmt::Local(l) => {
                 self.register_local_ref(l);
@@ -131,6 +131,8 @@ impl RustHighlighter {
             syn::Stmt::Item(i) => {}
         }
     }
+
+    make_register_wrappers!(statement, Stmt);
 
     fn register_local_ref(&mut self, v: &Local) {
         self.register_keyword_ref(&v.let_token);
@@ -142,14 +144,14 @@ impl RustHighlighter {
 
     fn register_expr_ref(&mut self, v: &Expr) {}
 
-    fn register_macro(&mut self, v: &StmtMacro) {}
+    fn register_macro_ref(&mut self, v: &StmtMacro) {}
 
-    fn register_item(&mut self, v: Item) {}
+    fn register_item_ref(&mut self, v: Item) {}
 
     fn register_pattern_ref(&mut self, pattern: &Pat) {
         match pattern {
             syn::Pat::Ident(i) => {
-                self.register_pat_ident(i);
+                self.register_pat_ident_ref(i);
             }
             _ => {}
         }
@@ -161,15 +163,19 @@ impl RustHighlighter {
 
     make_register_wrappers!(local_init, LocalInit);
 
-    fn register_pat_ident(&mut self, pattern: &syn::PatIdent) {
+    fn register_pat_ident_ref(&mut self, pattern: &PatIdent) {
         self.try_register_keyword(pattern.by_ref.as_ref());
         self.try_register_keyword(pattern.mutability.as_ref());
         self.register_token_ref(&pattern.ident, TokenTag::Ident);
     }
 
-    fn register_type_pattern(&mut self, pattern: &syn::PatType) {
+    make_register_wrappers!(pat_ident, PatIdent);
+
+    fn register_type_pattern_ref(&mut self, pattern: &PatType) {
         self.register_pattern_box(&pattern.pat);
     }
+
+    make_register_wrappers!(type_pattern, PatType);
 
     fn register_lifetime_ref(&mut self, lifetime: &Lifetime) {
         self.register_token_ref(lifetime, TokenTag::LifeTime);
