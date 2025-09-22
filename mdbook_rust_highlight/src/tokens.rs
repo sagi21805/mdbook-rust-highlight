@@ -17,6 +17,7 @@ pub enum TokenTag<'ast> {
     SelfToken,
     Macro,
     Type,
+    Enum,
     Segment,
     Comment,
     LifeTime,

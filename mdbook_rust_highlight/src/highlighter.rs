@@ -34,11 +34,12 @@ impl<'ast> Visit<'ast> for RustHighlighter<'ast> {
             match input {
                 FnArg::Receiver(arg) => {
                     self.register_token(&arg.self_token, TokenTag::SelfToken);
+                    self.try_register_keyword_tag(arg.mutability.as_ref());
                     self.try_register_lifetime_tag(arg.lifetime());
                 }
                 FnArg::Typed(type_pat) => {
                     self.register_type_pattern(type_pat);
-                    self.register_token(&type_pat.ty, TokenTag::Type);
+                    self.register_type(&type_pat.ty);
                 }
             }
         }
@@ -66,14 +67,14 @@ impl<'ast> Visit<'ast> for RustHighlighter<'ast> {
 
 impl<'ast> RustHighlighter<'ast> {
     fn write_tokens(self, output: &mut Rope) {
-        for (k, v) in self.unidentified {
-            eprintln!("{:?} : {:?}", k, v.ident.to_string())
-        }
+        // for (k, v) in self.unidentified {
+        //     eprintln!("{:?} : {:?}", k, v.ident.to_string())
+        // }
 
         let mut tok_offset: usize = 0;
         for (index, token) in self.token_map {
             match token {
-                // TODO FIX COMMENTS TAGGING IN THE MIDDLE OF THE TOKEN STREAM
+                // TODO FIX COMMENTS TAGGINGIN THE MIDDLE OF THE TOKEN STREAM
                 TokenTag::TokenStream(stream) => {
                     for token in stream.clone() {
                         if let TokenTree::Literal(lit) = token {
@@ -89,7 +90,21 @@ impl<'ast> RustHighlighter<'ast> {
                         }
                     }
                 }
+                TokenTag::NeedIdentification => {
+                    let ident_string = self.unidentified.get(&index).unwrap().ident.to_string();
 
+                    let identified = match ident_string.as_str() {
+                        "self" | "Self" => TokenTag::SelfToken,
+                        "Ok" | "Err" | "NotATable" | "NoMapping" => TokenTag::Enum,
+                        "new_unchecked" | "parse_str" => TokenTag::Function,
+                        _ => TokenTag::Ident,
+                    };
+
+                    let tag = identified.to_string();
+                    output.insert(index + tok_offset, tag.as_str());
+                    tok_offset += tag.len();
+                    // eprintln!("{}: {}", index, t);
+                }
                 _ => {
                     let tag = token.to_string();
                     output.insert(index + tok_offset, tag.as_str());
@@ -252,11 +267,14 @@ impl<'ast> RustHighlighter<'ast> {
 
     fn register_pattern(&mut self, token: &'ast Pat) {
         match token {
-            Pat::Ident(i) => {
-                self.register_pat_ident(i);
+            Pat::Ident(token) => {
+                self.register_pat_ident(token);
             }
-            Pat::Reference(r) => {
-                self.register_reference_pat(r);
+            Pat::Reference(token) => {
+                self.register_reference_pat(token);
+            }
+            Pat::Type(token) => {
+                self.register_pat_type(token);
             }
             _ => {}
         }
@@ -264,6 +282,11 @@ impl<'ast> RustHighlighter<'ast> {
 }
 
 impl<'ast> RustHighlighter<'ast> {
+    fn register_pat_type(&mut self, token: &'ast PatType) {
+        self.register_pattern(&token.pat);
+        self.register_type(&token.ty);
+    }
+
     fn register_path_segment(&mut self, token: &'ast PathSegment) {
         self.register_segment_tag(&token.ident);
         self.register_path_argument(&token.arguments);
@@ -303,7 +326,11 @@ impl<'ast> RustHighlighter<'ast> {
         }
     }
 
-    fn register_type_reference(&mut self, token: &'ast TypeReference) {}
+    fn register_type_reference(&mut self, token: &'ast TypeReference) {
+        self.try_register_lifetime_tag(token.lifetime.as_ref());
+        self.try_register_keyword_tag(token.mutability.as_ref());
+        self.register_type(&token.elem);
+    }
 
     fn register_type_path(&mut self, token: &'ast TypePath) {
         self.try_register_qself(token.qself.as_ref());
@@ -451,7 +478,7 @@ impl<'ast> RustHighlighter<'ast> {
         let comment_regex: Regex = Regex::new(r"\/\/\/?[^\n]*").unwrap();
         for comment in comment_regex.captures_iter(code) {
             let m = comment.get(0).unwrap();
-            self.register_tag_on_index(m.start(), m.end() - 1, TokenTag::Comment);
+            self.register_tag_on_index(m.start(), m.end(), TokenTag::Comment);
         }
     }
 
