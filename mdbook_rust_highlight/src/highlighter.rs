@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::tokens::TokenTag;
-use proc_macro2::{Spacing, TokenStream, TokenTree};
+use proc_macro2::{Span, TokenTree};
 use ropey::Rope;
 use syn::{
     Block, Expr, ExprForLoop, ExprLit, ExprUnsafe, File, FnArg, Item, Lit, LitStr, Local,
@@ -92,6 +92,10 @@ impl RustHighlighter {
         self.token_map.insert(end_idx, TokenTag::EndOfToken);
     }
 
+    fn merge_tokens_span(t1: &impl Spanned, t2: &impl Spanned) -> Option<Span> {
+        t1.span().join(t2.span())
+    }
+
     #[make_register_wrappers]
     fn register_statement(&mut self, token: &Stmt) {
         match token {
@@ -169,13 +173,7 @@ impl RustHighlighter {
 
     fn register_macro_statement(&mut self, token: &StmtMacro) {
         // TODO NEED CHANGE TO RENDER PATH CORRECTLY AND TO PARSE TOKEN TREE BETTER WITH SPECIFIC KEY WORD FOR BUILTIN MACROS
-        let span = token
-            .mac
-            .path
-            .span()
-            .join(token.mac.bang_token.span)
-            .unwrap();
-        self.register_macro(&span);
+        self.try_register_macro(Self::merge_tokens_span(&token.mac.path, &token.mac.bang_token).as_ref());
         for token in token.mac.tokens.clone() {
             if let TokenTree::Literal(lit) = token {
                 if let Ok(_) = syn::parse_str::<LitStr>(&lit.to_string()) {
