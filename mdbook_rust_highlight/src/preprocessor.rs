@@ -12,7 +12,7 @@ use crate::highlighter::RustHighlighter;
 
 pub struct RustHighlighterPreprocessor;
 
-const HLRS_CODEBLOCK_REGEX: &str = r"```hlrs(?:,([^\n]*))?\n([\s\S]*?)\n```";
+const HLRS_CODEBLOCK_REGEX: &str = r"```hlrs(?:,?([^\n]+))?\n([\s\S]*?)\n?```";
 const RUST_ICON_URL: &str = "@https://www.rust-lang.org/static/images/rust-logo-blk.svg";
 
 impl Preprocessor for RustHighlighterPreprocessor {
