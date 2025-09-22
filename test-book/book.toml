@@ -5,7 +5,7 @@ src = "src"
 title = "test-book"
 
 [preprocessor.rust-highlight]
-whichlang = true
+whichlang = false
 command = "cargo run --release --locked"
 
 [output.html]

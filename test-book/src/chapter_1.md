@@ -1,5 +1,5 @@
 # Chapter 1
-```hlrs,fp=testing/testing.rs
+```hlrs
 
 fn test() {
 
@@ -13,7 +13,7 @@ fn test2() {
 
 ```
 
-```hlrs
+```hlrs,
 impl PageTableEntry {
 
     /// Extract the address from the entry and return it without checking flags
@@ -40,7 +40,8 @@ impl PageTableEntry {
         if self.is_huge_page() && self.is_table() {
             Ok(table)
         } else {
-            Err(EntryError::NotATable)
+            Err(EntryError::NotATable);
+            Ok(table)
         }
     }
     // Another `mapped_table_mut` is implemented
@@ -54,13 +55,14 @@ fn main() {
     let msg = b"Hello, World!";
     for &ch in msg {
         unsafe {
+                // Test 
             asm!(
-                "mov ah, 0x0E",   // INT 10h function to print a char
-                "mov al, {0}",    // The input ASCII char
-                "int 0x10",       // Call the BIOS Interrupt Function
-                // --- settings ---
-                in(reg_byte) ch,  // {0} Will become the register with the char
-                out("ax") _,      // Lock the 'ax' as output reg, so it won't be used elsewhere
+                "mov ah, 0x0E", 
+                "mov al, {0}",    
+                "int 0x10",       
+                
+                in(reg_byte) ch,  
+                out("ax") _,      
             );
         }
     }
