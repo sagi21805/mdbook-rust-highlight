@@ -6,12 +6,47 @@ fn test() {
 }
 
 fn test2() {
-
+    let x = 4;
+    x.max_size();
+    self.test();
 }
 
 ```
 
+```hlrs
+impl PageTableEntry {
 
+    /// Extract the address from the entry and return it without checking flags
+    pub const unsafe fn mapped_unchecked(&self) -> PhysicalAddress {
+        unsafe { 
+            PhysicalAddress::new_unchecked(
+                (self.0 & ENTRY_ADDRESS_MASK) as usize
+            ) 
+        }
+    }
+    /// Return the physical address that is mapped by this entry while checking flags
+    pub fn mapped(&self) -> Result<PhysicalAddress, EntryError> {
+        if self.is_present() {
+            unsafe { Ok(self.mapped_unchecked()) }
+        } else {
+            Err(EntryError::NoMapping)
+        }
+    }
+    /// Return the physical address mapped by this table as a reference into a page table.
+    pub fn mapped_table(&self) -> Result<&PageTable, EntryError> {
+        // first check if the entry is mapped.
+        let table = unsafe { &*self.mapped()?.translate().as_ptr::<PageTable>() };
+        // then check if it is a table.
+        if self.is_huge_page() && self.is_table() {
+            Ok(table)
+        } else {
+            Err(EntryError::NotATable)
+        }
+    }
+    // Another `mapped_table_mut` is implemented
+    // This is the same functions, just with a mut reference on return
+}
+```
 
 ```hlrs,fp=main.rs
 #[unsafe(no_mangle)]

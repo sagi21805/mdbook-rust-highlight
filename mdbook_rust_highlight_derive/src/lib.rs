@@ -3,7 +3,7 @@ use quote::{format_ident, quote};
 use syn::{ItemEnum, ItemFn, Type, parse_macro_input};
 
 #[proc_macro_attribute]
-pub fn make_register_wrappers(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn add_try_method(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let vis = &input.vis;
     let sig = &input.sig;
@@ -16,7 +16,6 @@ pub fn make_register_wrappers(_attr: TokenStream, item: TokenStream) -> TokenStr
         .strip_prefix("register_")
         .expect("Function must be named `register_<name>`");
 
-    let box_ident = format_ident!("register_{}_box", base);
     let try_ident = format_ident!("try_register_{}", base);
 
     let arg_ty = if let Some(arg) = sig.inputs.iter().nth(1) {
@@ -33,11 +32,6 @@ pub fn make_register_wrappers(_attr: TokenStream, item: TokenStream) -> TokenStr
 
     let expanded = quote! {
         #vis #sig #block
-
-        #[allow(dead_code)]
-        pub(crate) fn #box_ident(&mut self, token: &Box<#arg_ty>) {
-            self.#fn_name(token.as_ref());
-        }
 
         #[allow(dead_code)]
         pub(crate) fn #try_ident(&mut self, token: Option<&#arg_ty>) {
@@ -60,7 +54,7 @@ pub fn register_variants(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let method_name = format_ident!("register_{}", variant_name.to_string().to_lowercase());
 
         quote! {
-            #[make_register_wrappers]
+            #[add_try_method]
             pub(crate) fn #method_name(&mut self, token: &(impl syn::spanned::Spanned)) {
                 self.register_token(token, #enum_name::#variant_name);
             }
