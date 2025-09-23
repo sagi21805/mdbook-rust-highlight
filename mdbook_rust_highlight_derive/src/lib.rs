@@ -53,15 +53,11 @@ pub fn register_variants(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let variant_name = &v.ident;
         let variant_string = variant_name.to_string().to_lowercase();
         let method_name = format_ident!("register_{}_tag", variant_string);
-        if variant_string != "tokenstream" {
-            quote! {
-                #[add_try_method]
-                pub(crate) fn #method_name(&mut self, token: &'ast (impl syn::spanned::Spanned)) {
-                    self.register_token(token, #enum_name::#variant_name);
-                }
+        quote! {
+            #[add_try_method]
+            pub(crate) fn #method_name(&mut self, token: &(impl syn::spanned::Spanned)) {
+                self.register_token(token, #enum_name::#variant_name);
             }
-        } else {
-            quote! {}
         }
     });
 

@@ -15,7 +15,7 @@ use syn::{
 use mdbook_rust_highlight_derive::add_try_method;
 
 pub struct RustHighlighter<'ast> {
-    token_map: BTreeMap<usize, TokenTag<'ast>>,
+    token_map: BTreeMap<usize, TokenTag>,
     unidentified: HashMap<usize, &'ast PathSegment>,
 }
 
@@ -74,22 +74,6 @@ impl<'ast> RustHighlighter<'ast> {
         let mut tok_offset: usize = 0;
         for (index, token) in self.token_map {
             match token {
-                // TODO FIX COMMENTS TAGGINGIN THE MIDDLE OF THE TOKEN STREAM
-                TokenTag::TokenStream(stream) => {
-                    for token in stream.clone() {
-                        if let TokenTree::Literal(lit) = token {
-                            if let Ok(_) = syn::parse_str::<LitStr>(&lit.to_string()) {
-                                let tag = TokenTag::LitStr.to_string();
-                                let (start, end) = Self::span_position(&lit);
-                                output.insert(start + tok_offset, tag.as_str());
-                                tok_offset += tag.len();
-                                let end_tag = TokenTag::EndOfToken.to_string();
-                                output.insert(end + tok_offset, end_tag.as_str());
-                                tok_offset += end_tag.len();
-                            }
-                        }
-                    }
-                }
                 TokenTag::NeedIdentification => {
                     let ident_string = self.unidentified.get(&index).unwrap().ident.to_string();
 
@@ -125,12 +109,12 @@ impl<'ast> RustHighlighter<'ast> {
         (span.start, span.end)
     }
 
-    fn register_tag_on_index(&mut self, start: usize, end: usize, tag: TokenTag<'ast>) {
+    fn register_tag_on_index(&mut self, start: usize, end: usize, tag: TokenTag) {
         self.token_map.insert(start, tag);
         self.token_map.insert(end, TokenTag::EndOfToken);
     }
 
-    pub(crate) fn register_token(&mut self, token: &'ast impl Spanned, tag: TokenTag<'ast>) {
+    pub(crate) fn register_token(&mut self, token: &impl Spanned, tag: TokenTag) {
         let (start, end) = Self::span_position(token);
         self.register_tag_on_index(start, end, tag);
     }
@@ -140,7 +124,7 @@ impl<'ast> RustHighlighter<'ast> {
         &mut self,
         t1: &'ast impl Spanned,
         t2: &'ast impl Spanned,
-        tag: TokenTag<'ast>,
+        tag: TokenTag,
     ) {
         let p1 = Self::span_position(t1);
         let p2 = Self::span_position(t2);
@@ -250,7 +234,13 @@ impl<'ast> RustHighlighter<'ast> {
     fn register_macro_statement(&mut self, token: &'ast StmtMacro) {
         // TODO NEED CHANGE TO RENDER PATH CORRECTLY AND TO PARSE TOKEN TREE BETTER WITH SPECIFIC KEY WORD FOR BUILTIN MACROS
         self.register_merged_token(&token.mac.path, &token.mac.bang_token, TokenTag::Macro);
-        self.register_tokenstream_tag(&token.mac.tokens);
+        for token in token.mac.tokens.clone() {
+            if let TokenTree::Literal(lit) = token {
+                if let Ok(_) = syn::parse_str::<LitStr>(&lit.to_string()) {
+                    self.register_litstr_tag(&lit);
+                }
+            }
+        }
     }
 
     fn register_path_argument(&mut self, token: &'ast PathArguments) {
@@ -419,7 +409,7 @@ impl<'ast> RustHighlighter<'ast> {
     /// - `last:` - Optional tag to put for the last item of the path.
     ///
     /// TODO ADD DOCUMENTATION AND PLAN WHAT HAPPENS IF NONE IS GIVEN
-    fn register_path(&mut self, token: &'ast Path, last: Option<TokenTag<'ast>>) {
+    fn register_path(&mut self, token: &'ast Path, last: Option<TokenTag>) {
         let mut segment_iter = token.segments.iter().rev();
         let last_segment = segment_iter.next();
         for segment in &token.segments {
@@ -480,11 +470,6 @@ impl<'ast> RustHighlighter<'ast> {
             let m = comment.get(0).unwrap();
             self.register_tag_on_index(m.start(), m.end(), TokenTag::Comment);
         }
-    }
-
-    fn register_tokenstream_tag(&mut self, token: &'ast TokenStream) {
-        let (start, _) = Self::span_position(token);
-        self.token_map.insert(start, TokenTag::TokenStream(token));
     }
 }
 
