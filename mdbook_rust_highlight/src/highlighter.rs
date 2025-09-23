@@ -1,15 +1,22 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    any::Any,
+    collections::{BTreeMap, HashMap},
+    net::TcpListener,
+};
 
 use crate::tokens::TokenTag;
-use proc_macro2::{Span, TokenStream, TokenTree};
+use proc_macro2::{Span, TokenTree};
 use regex::Regex;
 use ropey::Rope;
 use syn::{
-    AngleBracketedGenericArguments, Block, Expr, ExprBinary, ExprBlock, ExprCall, ExprForLoop,
-    ExprIf, ExprLit, ExprMethodCall, ExprPath, ExprReference, ExprTry, ExprUnary, ExprUnsafe, File,
-    FnArg, GenericArgument, Item, Lit, LitStr, Local, LocalInit, ParenthesizedGenericArguments,
-    Pat, PatIdent, PatReference, PatType, Path, PathArguments, PathSegment, QSelf, ReturnType,
-    Stmt, StmtMacro, Type, TypePath, TypeReference, spanned::Spanned, visit::Visit,
+    AngleBracketedGenericArguments, Arm, Block, CapturedParam, Expr, ExprBinary, ExprBlock,
+    ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprLit, ExprMatch, ExprMethodCall,
+    ExprParen, ExprPath, ExprReference, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, File, FnArg,
+    GenericArgument, Ident, Item, Lit, LitStr, Local, LocalInit, Member,
+    ParenthesizedGenericArguments, Pat, PatIdent, PatOr, PatParen, PatReference, PatTuple,
+    PatTupleStruct, PatType, Path, PathArguments, PathSegment, PreciseCapture, QSelf, ReturnType,
+    Stmt, StmtMacro, TraitBound, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference,
+    TypeTuple, spanned::Spanned, token::Token, visit::Visit,
 };
 
 use mdbook_rust_highlight_derive::add_try_method;
@@ -63,6 +70,10 @@ impl<'ast> Visit<'ast> for RustHighlighter<'ast> {
     fn visit_block(&mut self, i: &'ast syn::Block) {
         self.register_block(i);
     }
+
+    // fn visit_item_struct(&mut self, i: &'ast syn::ItemStruct) {}
+
+    // fn visit_item_impl(&mut self, i: &'ast syn::ItemImpl) {}
 }
 
 impl<'ast> RustHighlighter<'ast> {
@@ -156,7 +167,7 @@ impl<'ast> RustHighlighter<'ast> {
         }
     }
 
-    fn register_literal_tag(&mut self, token: &'ast ExprLit) {
+    fn register_lit_expr(&mut self, token: &'ast ExprLit) {
         match &token.lit {
             Lit::Int(_) | Lit::Float(_) => {
                 self.register_litnum_tag(&token.lit);
@@ -177,16 +188,16 @@ impl<'ast> RustHighlighter<'ast> {
 
         match token {
             Expr::Lit(token) => {
-                self.register_literal_tag(token);
+                self.register_lit_expr(token);
             }
             Expr::ForLoop(token) => {
-                self.register_for_loop(token);
+                self.register_for_loop_expr(token);
             }
             Expr::Unsafe(token) => {
                 self.register_unsafe_expr(token);
             }
             Expr::MethodCall(token) => {
-                self.register_method_call(token);
+                self.register_method_call_expr(token);
             }
             Expr::Path(token) => {
                 self.register_path_expr(token);
@@ -212,6 +223,21 @@ impl<'ast> RustHighlighter<'ast> {
             Expr::Block(token) => {
                 self.register_block_expr(token);
             }
+            Expr::Paren(token) => {
+                self.register_parentheses_expr(token);
+            }
+            Expr::Cast(token) => {
+                self.register_cast_expr(token);
+            }
+            Expr::Field(token) => {
+                self.register_field_expr(token);
+            }
+            Expr::Match(token) => {
+                self.register_match_expr(token);
+            }
+            Expr::Tuple(token) => {
+                self.register_tuple_expr(token);
+            }
             _ => {}
         }
     }
@@ -219,10 +245,16 @@ impl<'ast> RustHighlighter<'ast> {
     fn register_type(&mut self, token: &'ast Type) {
         match token {
             Type::Reference(token) => {
-                self.register_type_reference(token);
+                self.register_reference_type(token);
             }
             Type::Path(token) => {
-                self.register_type_path(token);
+                self.register_path_type(token);
+            }
+            Type::Tuple(token) => {
+                self.register_tuple_type(token);
+            }
+            Type::ImplTrait(token) => {
+                self.register_impl_trait_type(token);
             }
             _ => {}
         }
@@ -246,10 +278,10 @@ impl<'ast> RustHighlighter<'ast> {
     fn register_path_argument(&mut self, token: &'ast PathArguments) {
         match token {
             PathArguments::Parenthesized(token) => {
-                self.register_parenthesized(token);
+                self.register_parenthesized_arg(token);
             }
             PathArguments::AngleBracketed(token) => {
-                self.register_angle_brackets(token);
+                self.register_angle_brackets_arg(token);
             }
             PathArguments::None => {}
         }
@@ -258,27 +290,163 @@ impl<'ast> RustHighlighter<'ast> {
     fn register_pattern(&mut self, token: &'ast Pat) {
         match token {
             Pat::Ident(token) => {
-                self.register_pat_ident(token);
+                self.register_ident_pat(token);
             }
             Pat::Reference(token) => {
                 self.register_reference_pat(token);
             }
             Pat::Type(token) => {
-                self.register_pat_type(token);
+                self.register_type_pat(token);
             }
-            _ => {}
+            Pat::Path(token) => {
+                self.register_path_expr(token);
+            }
+            Pat::Tuple(token) => {
+                self.register_tuple_pat(token);
+            }
+            Pat::TupleStruct(token) => {
+                self.register_tuple_struct_pat(token);
+            }
+            Pat::Or(token) => {
+                self.register_or_pat(token);
+            }
+            Pat::Lit(token) => {
+                self.register_lit_expr(token);
+            }
+            _ => {
+                self.register_ident_tag(token);
+            }
         }
     }
 }
 
 impl<'ast> RustHighlighter<'ast> {
-    fn register_pat_type(&mut self, token: &'ast PatType) {
+    fn register_or_pat(&mut self, token: &'ast PatOr) {
+        for case in &token.cases {
+            self.register_pattern(case);
+        }
+    }
+
+    fn register_trait_bound(&mut self, token: &'ast TraitBound) {}
+
+    fn register_capture_param(&mut self, token: &'ast CapturedParam) {
+        match token {
+            CapturedParam::Ident(token) => {
+                self.register_ident_tag(token);
+            }
+            CapturedParam::Lifetime(token) => {
+                self.register_lifetime_tag(token);
+            }
+            _ => {}
+        }
+    }
+
+    fn register_precise_capture(&mut self, token: &'ast PreciseCapture) {
+        self.register_keyword_tag(&token.use_token);
+        for param in &token.params {
+            self.register_capture_param(param);
+        }
+    }
+
+    fn register_bound(&mut self, token: &'ast TypeParamBound) {
+        match token {
+            TypeParamBound::Lifetime(token) => {
+                self.register_lifetime_tag(token);
+            }
+            TypeParamBound::PreciseCapture(token) => {
+                self.register_precise_capture(token);
+            }
+            TypeParamBound::Trait(token) => {
+                self.register_trait_bound(token);
+            }
+            _ => {}
+        }
+    }
+
+    fn register_impl_trait_type(&mut self, token: &'ast TypeImplTrait) {
+        self.register_keyword_tag(&token.impl_token);
+        for bound in &token.bounds {
+            self.register_bound(bound);
+        }
+    }
+
+    fn register_tuple_type(&mut self, token: &'ast TypeTuple) {
+        for arg in &token.elems {
+            self.register_type(arg);
+        }
+    }
+
+    fn register_tuple_expr(&mut self, token: &'ast ExprTuple) {
+        for arg in &token.elems {
+            self.register_expr(arg);
+        }
+    }
+
+    fn register_tuple_pat(&mut self, token: &'ast PatTuple) {
+        for arg in &token.elems {
+            self.register_pattern(arg);
+        }
+    }
+
+    fn register_tuple_struct_pat(&mut self, token: &'ast PatTupleStruct) {
+        self.try_register_qself(token.qself.as_ref());
+        self.register_path(&token.path, Some(TokenTag::Enum));
+        for arg in &token.elems {
+            self.register_pattern(arg);
+        }
+    }
+
+    fn register_arm(&mut self, token: &'ast Arm) {
+        self.register_pattern(&token.pat);
+        if let Some(guard) = &token.guard {
+            self.register_keyword_tag(&guard.0);
+            self.register_expr(&guard.1);
+        }
+        self.register_expr(&token.body);
+    }
+
+    fn register_match_expr(&mut self, token: &'ast ExprMatch) {
+        self.register_keyword_tag(&token.match_token);
+        self.register_expr(&token.expr);
+        for arm in &token.arms {
+            self.register_arm(arm);
+        }
+    }
+
+    fn register_member(&mut self, token: &'ast Member) {
+        match token {
+            Member::Named(token) => {
+                // TODO Can mark this as variable
+                self.register_ident_tag(token);
+            }
+            Member::Unnamed(token) => {
+                self.register_litnum_tag(token);
+            }
+        }
+    }
+
+    fn register_field_expr(&mut self, token: &'ast ExprField) {
+        self.register_expr(&token.base);
+        self.register_member(&token.member);
+    }
+
+    fn register_cast_expr(&mut self, token: &'ast ExprCast) {
+        self.register_expr(&token.expr);
+        self.register_keyword_tag(&token.as_token);
+        self.register_type(&token.ty);
+    }
+
+    fn register_parentheses_expr(&mut self, token: &'ast ExprParen) {
+        self.register_expr(&token.expr);
+    }
+
+    fn register_type_pat(&mut self, token: &'ast PatType) {
         self.register_pattern(&token.pat);
         self.register_type(&token.ty);
     }
 
-    fn register_path_segment(&mut self, token: &'ast PathSegment) {
-        self.register_segment_tag(&token.ident);
+    fn register_path_segment(&mut self, token: &'ast PathSegment, tag: TokenTag) {
+        self.register_token(&token.ident, tag);
         self.register_path_argument(&token.arguments);
     }
 
@@ -303,26 +471,26 @@ impl<'ast> RustHighlighter<'ast> {
         }
     }
 
-    fn register_parenthesized(&mut self, token: &'ast ParenthesizedGenericArguments) {
+    fn register_parenthesized_arg(&mut self, token: &'ast ParenthesizedGenericArguments) {
         for input in &token.inputs {
             self.register_type(input);
         }
         self.register_return_type(&token.output);
     }
 
-    fn register_angle_brackets(&mut self, token: &'ast AngleBracketedGenericArguments) {
+    fn register_angle_brackets_arg(&mut self, token: &'ast AngleBracketedGenericArguments) {
         for arg in &token.args {
             self.register_generic_argument(arg);
         }
     }
 
-    fn register_type_reference(&mut self, token: &'ast TypeReference) {
+    fn register_reference_type(&mut self, token: &'ast TypeReference) {
         self.try_register_lifetime_tag(token.lifetime.as_ref());
         self.try_register_keyword_tag(token.mutability.as_ref());
         self.register_type(&token.elem);
     }
 
-    fn register_type_path(&mut self, token: &'ast TypePath) {
+    fn register_path_type(&mut self, token: &'ast TypePath) {
         self.try_register_qself(token.qself.as_ref());
         self.register_path(&token.path, Some(TokenTag::Type));
     }
@@ -359,7 +527,7 @@ impl<'ast> RustHighlighter<'ast> {
     }
 
     #[add_try_method]
-    fn register_for_loop(&mut self, token: &'ast ExprForLoop) {
+    fn register_for_loop_expr(&mut self, token: &'ast ExprForLoop) {
         self.register_keyword_tag(&token.for_token);
         self.register_pattern(&token.pat);
         self.register_keyword_tag(&token.in_token);
@@ -413,13 +581,13 @@ impl<'ast> RustHighlighter<'ast> {
         let mut segment_iter = token.segments.iter().rev();
         let last_segment = segment_iter.next();
         for segment in &token.segments {
-            self.register_path_segment(segment);
+            self.register_path_segment(segment, TokenTag::Segment);
         }
         match last_segment {
             Some(segment) => match last {
-                Some(tag) => self.register_token(segment, tag),
+                Some(tag) => self.register_path_segment(segment, tag),
                 None => {
-                    self.register_token(segment, last.unwrap_or(TokenTag::NeedIdentification));
+                    self.register_path_segment(segment, TokenTag::NeedIdentification);
                     self.unidentified
                         .insert(segment.span().byte_range().start, &segment);
                 }
@@ -428,7 +596,7 @@ impl<'ast> RustHighlighter<'ast> {
         }
     }
 
-    fn register_method_call(&mut self, token: &'ast ExprMethodCall) {
+    fn register_method_call_expr(&mut self, token: &'ast ExprMethodCall) {
         self.register_expr(&token.receiver);
         self.register_function_tag(&token.method);
         for arg in &token.args {
@@ -453,7 +621,7 @@ impl<'ast> RustHighlighter<'ast> {
     }
 
     #[add_try_method]
-    fn register_pat_ident(&mut self, token: &'ast PatIdent) {
+    fn register_ident_pat(&mut self, token: &'ast PatIdent) {
         self.try_register_keyword_tag(token.by_ref.as_ref());
         self.try_register_keyword_tag(token.mutability.as_ref());
         self.register_token(&token.ident, TokenTag::Ident);
