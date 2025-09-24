@@ -21,11 +21,13 @@ pub enum TokenTag {
     Comment,
     LifeTime,
     NeedIdentification,
+    Boring,
 }
 
 impl ToString for TokenTag {
     fn to_string(&self) -> String {
         match self {
+            Self::Boring => String::from("<span class=\"boring\">"),
             Self::EndOfToken => String::from("</span>"),
             _ => format!("<span class=\"hlrs-{}\">", self.as_ref()),
         }

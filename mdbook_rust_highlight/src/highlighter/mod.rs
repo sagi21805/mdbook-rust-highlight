@@ -14,33 +14,37 @@ pub mod ty;
 pub mod visit;
 
 pub struct RustHighlighter<'ast> {
+    // TODO CONSIDER CHANGING INTO A SET AND THE TOKEN WILL HOLD THE USIZE IN IT
     token_map: BTreeMap<usize, TokenTag>,
     unidentified: HashMap<usize, &'ast PathSegment>,
 }
 
 impl<'ast> RustHighlighter<'ast> {
     pub(crate) fn highlight(code: &str) -> String {
-        let mut output = Rope::from_str(code);
         let mut highlighter = RustHighlighter::<'ast> {
             token_map: BTreeMap::new(),
             unidentified: HashMap::new(),
         };
 
+        let code = highlighter.register_boring(code);
+
+        for (k,v) in &highlighter.token_map {
+            eprintln!("{k}: {:?}",v)
+        }
+
+        let mut output = Rope::from_str(&code);
+
         let syntax_tree: File =
-            syn::parse_str(code).expect(&format!("Failed to parse Rust code {}", code));
+            syn::parse_str(&code).expect(&format!("Failed to parse Rust code\n{}", code));
 
         highlighter.visit_file(&syntax_tree);
-        highlighter.register_comments(code);
+        highlighter.register_comments(&code);
         highlighter.write_tokens(&mut output);
 
         output.to_string()
     }
 
     pub(crate) fn write_tokens(self, output: &mut Rope) {
-        // for (k, v) in self.unidentified {
-        //     eprintln!("{:?} : {:?}", k, v.ident.to_string())
-        // }
-
         let mut tok_offset: usize = 0;
         for (index, token) in self.token_map {
             match token {
@@ -57,9 +61,11 @@ impl<'ast> RustHighlighter<'ast> {
                     let tag = identified.to_string();
                     output.insert(index + tok_offset, tag.as_str());
                     tok_offset += tag.len();
-                    // eprintln!("{}: {}", index, t);
                 }
                 _ => {
+                    if let TokenTag::Boring = token {
+                        eprintln!("{}", index);
+                    }
                     let tag = token.to_string();
                     output.insert(index + tok_offset, tag.as_str());
                     tok_offset += tag.len();
@@ -71,8 +77,6 @@ impl<'ast> RustHighlighter<'ast> {
     /// Extract a span position in the rope.
     ///
     /// returns the (start_idx, end_idx) of the span
-    ///
-    /// TODO: assuming same line, create tests to assert this assumption
     pub(crate) fn span_position(span: &impl Spanned) -> (usize, usize) {
         // lines are 1 indexed instead of zero.
         let span = span.span().byte_range();
@@ -109,4 +113,24 @@ impl<'ast> RustHighlighter<'ast> {
             self.register_tag_on_index(m.start(), m.end(), TokenTag::Comment);
         }
     }
+
+    pub(crate) fn register_boring(&mut self, code: &str) -> String {
+        // FIX BUG THAT IT WILL NOT WORK ON THE END OR START, AND ADD A WAY TO PROCESS MULTIPLE TOKEN
+        // MAYBE THE ORDERED SET INSTEAD OF MAP WILL SOLVE THIS.
+        // #(\s*)([^\[\n][^\n]*)
+        let boring_regex = Regex::new(r"(#\s)(.*\n)").unwrap();
+
+        for boring in boring_regex.captures_iter(code) {
+            let hashtag_len = boring.get(1).unwrap().as_str().len();
+            let boring_code = boring.get(2).unwrap();
+            self.register_tag_on_index(
+                boring_code.start() - hashtag_len,
+                boring_code.end() - hashtag_len,
+                TokenTag::Boring,
+            );
+        }
+
+        boring_regex.replace_all(code, "\n$2\n").to_string()
+    }
 }
+
