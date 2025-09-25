@@ -6,29 +6,29 @@ use strum_macros::AsRefStr;
 #[register_variants]
 #[derive(AsRefStr, Debug, Clone)]
 pub enum TokenTag {
-    Keyword,
-    Ident,
-    LitStr,
-    LitNum,
-    LitBool,
-    EndOfToken,
-    Function,
-    SelfToken,
-    Macro,
-    Type,
-    Enum,
-    Segment,
-    Comment,
-    LifeTime,
-    NeedIdentification,
-    Boring,
+    Keyword(usize),
+    Ident(usize),
+    LitStr(usize),
+    LitNum(usize),
+    LitBool(usize),
+    EndOfToken(usize),
+    Function(usize),
+    SelfToken(usize),
+    Macro(usize),
+    Type(usize),
+    Enum(usize),
+    Segment(usize),
+    Comment(usize),
+    LifeTime(usize),
+    NeedIdentification(usize),
+    Boring(usize),
 }
 
 impl ToString for TokenTag {
     fn to_string(&self) -> String {
         match self {
-            Self::Boring => String::from("<span class=\"boring\">"),
-            Self::EndOfToken => String::from("</span>"),
+            Self::Boring(_) => String::from("<span class=\"boring\">"),
+            Self::EndOfToken(_) => String::from("</span>"),
             _ => format!("<span class=\"hlrs-{}\">", self.as_ref()),
         }
     }
