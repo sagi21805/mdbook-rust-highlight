@@ -2,22 +2,22 @@ use mdbook_rust_highlight_derive::add_try_method;
 use proc_macro2::TokenTree;
 use syn::{Block, LitStr, Local, LocalInit, Stmt, StmtMacro};
 
-use crate::{highlighter::RustHighlighter, tokens::TokenTag};
+use crate::highlighter::RustHighlighter;
 
 impl<'ast> RustHighlighter<'ast> {
     #[add_try_method]
     pub(crate) fn register_statement(&mut self, token: &'ast Stmt) {
         match token {
-            syn::Stmt::Local(token) => {
+            Stmt::Local(token) => {
                 self.register_local(token);
             }
-            syn::Stmt::Expr(token, _) => {
+            Stmt::Expr(token, _) => {
                 self.register_expr(token);
             }
-            syn::Stmt::Macro(token) => {
+            Stmt::Macro(token) => {
                 self.register_macro_statement(token);
             }
-            syn::Stmt::Item(token) => {
+            Stmt::Item(token) => {
                 self.register_item(token);
             }
         }
@@ -25,7 +25,8 @@ impl<'ast> RustHighlighter<'ast> {
 
     pub(crate) fn register_macro_statement(&mut self, token: &'ast StmtMacro) {
         // TODO NEED CHANGE TO RENDER PATH CORRECTLY AND TO PARSE TOKEN TREE BETTER WITH SPECIFIC KEY WORD FOR BUILTIN MACROS
-        self.register_merged_token(&token.mac.path, &token.mac.bang_token, TokenTag::Macro);
+        self.register_macro_tag(&token.mac.path);
+        self.register_macro_tag(&token.mac.bang_token);
         for token in token.mac.tokens.clone() {
             if let TokenTree::Literal(lit) = token {
                 if let Ok(_) = syn::parse_str::<LitStr>(&lit.to_string()) {

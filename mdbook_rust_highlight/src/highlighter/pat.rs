@@ -38,7 +38,7 @@ impl<'ast> RustHighlighter<'ast> {
     pub(crate) fn register_ident_pat(&mut self, token: &'ast PatIdent) {
         self.try_register_keyword_tag(token.by_ref.as_ref());
         self.try_register_keyword_tag(token.mutability.as_ref());
-        self.register_token(&token.ident, TokenTag::Ident);
+        self.register_ident_tag(&token.ident);
     }
 
     pub(crate) fn register_reference_pat(&mut self, token: &'ast PatReference) {
