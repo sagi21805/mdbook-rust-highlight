@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{ItemEnum, ItemFn, Type, parse_macro_input, token::Continue};
+use syn::{Data, DeriveInput, Fields, FnArg, ItemFn, Type, parse_macro_input};
 
 #[proc_macro_attribute]
 pub fn add_try_method(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -20,7 +20,7 @@ pub fn add_try_method(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let arg_ty = if let Some(arg) = sig.inputs.iter().nth(1) {
         match arg {
-            syn::FnArg::Typed(pat) => match &*pat.ty {
+            FnArg::Typed(pat) => match &*pat.ty {
                 Type::Reference(ref_ty) => &ref_ty.elem,
                 _ => &pat.ty,
             },
@@ -44,26 +44,40 @@ pub fn add_try_method(_attr: TokenStream, item: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-#[proc_macro_attribute]
-pub fn register_variants(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as ItemEnum);
+#[proc_macro_derive(RegisterVariants)]
+pub fn register_variants(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
     let enum_name = &input.ident;
 
-    let methods = input.variants.iter().map(|v| {
+    // Make sure it's an enum
+    let data_enum = match &input.data {
+        Data::Enum(data_enum) => data_enum,
+        _ => {
+            return syn::Error::new_spanned(
+                &input.ident,
+                "RegisterVariants can only be applied to enums",
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
+
+    // Generate methods for each variant
+    let methods = data_enum.variants.iter().map(|v| {
         let variant_name = &v.ident;
         let variant_string = variant_name.to_string().to_lowercase();
-        let method_name = format_ident!("register_{}_tag", variant_string);
+        let token_method = format_ident!("register_{}_tag", variant_string);
+
         quote! {
             #[add_try_method]
-            pub(crate) fn #method_name(&mut self, token: &(impl syn::spanned::Spanned)) {
-                self.register_token(token, #enum_name::#variant_name);
+            pub(crate) fn #token_method(&mut self, token: &(impl syn::spanned::Spanned)) {
+                let (start, end) = Self::span_position(token);
+                self.register_tag(token, #enum_name::#variant_name);
             }
         }
     });
 
     let expanded = quote! {
-        #input
-
         impl<'ast> RustHighlighter<'ast> {
             #(#methods)*
         }
