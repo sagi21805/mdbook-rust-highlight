@@ -1,8 +1,11 @@
-use crate::tokens::TokenTag;
+use crate::tokens::{SpannedToken, TokenTag};
 use regex::Regex;
 use ropey::Rope;
-use std::collections::{BTreeMap, HashMap};
-use syn::{File, PathSegment, spanned::Spanned, visit::Visit};
+use std::{
+    collections::{BTreeSet, HashMap},
+    string, usize,
+};
+use syn::{File, PathSegment, spanned::Spanned, token::Token, visit::Visit};
 
 pub mod expr;
 pub mod generics;
@@ -15,22 +18,20 @@ pub mod visit;
 
 pub struct RustHighlighter<'ast> {
     // TODO CONSIDER CHANGING INTO A SET AND THE TOKEN WILL HOLD THE USIZE IN IT
-    token_map: BTreeMap<usize, TokenTag>,
+    token_set: BTreeSet<SpannedToken>,
     unidentified: HashMap<usize, &'ast PathSegment>,
+    pub token_count: usize,
 }
 
 impl<'ast> RustHighlighter<'ast> {
     pub(crate) fn highlight(code: &str) -> String {
         let mut highlighter = RustHighlighter::<'ast> {
-            token_map: BTreeMap::new(),
+            token_set: BTreeSet::new(),
             unidentified: HashMap::new(),
+            token_count: 0,
         };
 
         let code = highlighter.register_boring(code);
-
-        for (k,v) in &highlighter.token_map {
-            eprintln!("{k}: {:?}",v)
-        }
 
         let mut output = Rope::from_str(&code);
 
@@ -46,31 +47,38 @@ impl<'ast> RustHighlighter<'ast> {
 
     pub(crate) fn write_tokens(self, output: &mut Rope) {
         let mut tok_offset: usize = 0;
-        for (index, token) in self.token_map {
-            match token {
-                TokenTag::NeedIdentification => {
-                    let ident_string = self.unidentified.get(&index).unwrap().ident.to_string();
+        for token in &self.token_set {
+            eprintln!("{:?}", token);
+            let identified = self.identify_token(&token).unwrap_or(token.clone());
+            let tag = identified.kind.to_string();
+            output.insert(identified.start + tok_offset, tag.as_str());
+            tok_offset += tag.len();
+        }
+    }
 
-                    let identified = match ident_string.as_str() {
-                        "self" | "Self" => TokenTag::SelfToken,
-                        "Ok" | "Err" | "NotATable" | "NoMapping" => TokenTag::Enum,
-                        "new_unchecked" | "parse_str" => TokenTag::Function,
-                        _ => TokenTag::Ident,
-                    };
-
-                    let tag = identified.to_string();
-                    output.insert(index + tok_offset, tag.as_str());
-                    tok_offset += tag.len();
-                }
-                _ => {
-                    if let TokenTag::Boring = token {
-                        eprintln!("{}", index);
-                    }
-                    let tag = token.to_string();
-                    output.insert(index + tok_offset, tag.as_str());
-                    tok_offset += tag.len();
-                }
+    /// Returns the identified token for ones the need identification, and for all others, None.
+    pub(crate) fn identify_token(&self, token: &SpannedToken) -> Option<SpannedToken> {
+        match token.kind {
+            TokenTag::NeedIdentification => {
+                let ident_string = self
+                    .unidentified
+                    .get(&token.start)
+                    .unwrap()
+                    .ident
+                    .to_string();
+                let identified = match ident_string.as_str() {
+                    "self" | "Self" => TokenTag::SelfToken,
+                    "Ok" | "Err" | "NotATable" | "NoMapping" => TokenTag::Enum,
+                    "new_unchecked" | "parse_str" => TokenTag::Function,
+                    _ => TokenTag::Ident,
+                };
+                Some(SpannedToken {
+                    kind: identified,
+                    start: token.start,
+                    end: token.end,
+                })
             }
+            _ => None,
         }
     }
 
@@ -83,34 +91,29 @@ impl<'ast> RustHighlighter<'ast> {
         (span.start, span.end)
     }
 
-    pub(crate) fn register_tag_on_index(&mut self, start: usize, end: usize, tag: TokenTag) {
-        self.token_map.insert(start, tag);
-        self.token_map.insert(end, TokenTag::EndOfToken);
+    pub(crate) fn register_tag_at_index(&mut self, start: usize, end: usize, tag: TokenTag) {
+        self.token_set.insert(SpannedToken {
+            kind: tag,
+            start,
+            end,
+        });
+        self.token_set.insert(SpannedToken {
+            kind: TokenTag::EndOfToken,
+            start: end,
+            end: usize::MAX,
+        });
     }
 
-    pub(crate) fn register_token(&mut self, token: &impl Spanned, tag: TokenTag) {
-        let (start, end) = Self::span_position(token);
-        self.register_tag_on_index(start, end, tag);
-    }
-
-    /// Register a tag with start index of t1 and end index of t2.
-    pub(crate) fn register_merged_token(
-        &mut self,
-        t1: &'ast impl Spanned,
-        t2: &'ast impl Spanned,
-        tag: TokenTag,
-    ) {
-        let p1 = Self::span_position(t1);
-        let p2 = Self::span_position(t2);
-        self.token_map.insert(p1.0, tag);
-        self.token_map.insert(p2.1, TokenTag::EndOfToken);
+    pub(crate) fn register_tag(&mut self, token: &impl Spanned, tag: TokenTag) {
+        let (start, end) = Self::span_position(&token.span());
+        self.register_tag_at_index(start, end, tag);
     }
 
     pub(crate) fn register_comments(&mut self, code: &str) {
         let comment_regex: Regex = Regex::new(r"\/\/\/?[^\n]*").unwrap();
         for comment in comment_regex.captures_iter(code) {
             let m = comment.get(0).unwrap();
-            self.register_tag_on_index(m.start(), m.end(), TokenTag::Comment);
+            self.register_tag_at_index(m.start(), m.end(), TokenTag::Comment);
         }
     }
 
@@ -118,19 +121,21 @@ impl<'ast> RustHighlighter<'ast> {
         // FIX BUG THAT IT WILL NOT WORK ON THE END OR START, AND ADD A WAY TO PROCESS MULTIPLE TOKEN
         // MAYBE THE ORDERED SET INSTEAD OF MAP WILL SOLVE THIS.
         // #(\s*)([^\[\n][^\n]*)
-        let boring_regex = Regex::new(r"(#\s)(.*\n)").unwrap();
-
-        for boring in boring_regex.captures_iter(code) {
-            let hashtag_len = boring.get(1).unwrap().as_str().len();
-            let boring_code = boring.get(2).unwrap();
-            self.register_tag_on_index(
-                boring_code.start() - hashtag_len,
-                boring_code.end() - hashtag_len,
-                TokenTag::Boring,
-            );
+        // let boring_regex = Regex::new(r"(?m)(#\s)(.*)$").unwrap();
+        let mut string_offset = 0;
+        let mut output = String::with_capacity(code.len());
+        for line in code.split_inclusive('\n') {
+            if let Some(hash_position) = line.find("# ") {
+                let after_hash = &line[(hash_position + 2)..];
+                let start = string_offset + hash_position;
+                let end = string_offset + line.len() - 2;
+                output.push_str(after_hash);
+                self.register_tag_at_index(start, end, TokenTag::Boring);
+            } else {
+                output.push_str(line);
+            }
+            string_offset += line.len() - 2;
         }
-
-        boring_regex.replace_all(code, "\n$2\n").to_string()
+        output
     }
 }
-
