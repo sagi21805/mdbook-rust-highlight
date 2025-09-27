@@ -17,7 +17,7 @@ impl<'ast> RustHighlighter<'ast> {
     }
 
     pub(crate) fn register_path_segment(&mut self, token: &'ast PathSegment, tag: TokenTag) {
-        self.register_token(&token.ident, tag);
+        self.register_tag(&token.ident, tag);
         self.register_path_argument(&token.arguments);
     }
 
@@ -39,7 +39,7 @@ impl<'ast> RustHighlighter<'ast> {
         let mut segment_iter = token.segments.iter().rev();
         let last_segment = segment_iter.next();
         for segment in &token.segments {
-            self.register_path_segment(segment, TokenTag::Segment);
+            self.register_segment_tag(segment);
         }
         match last_segment {
             Some(segment) => match last {
