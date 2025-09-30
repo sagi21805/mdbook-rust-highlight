@@ -4,7 +4,7 @@ use crate::highlighter::RustHighlighter;
 use mdbook_rust_highlight_derive::{RegisterVariants, add_try_method};
 use strum_macros::AsRefStr;
 
-#[derive(AsRefStr, RegisterVariants, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(AsRefStr, RegisterVariants, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
 pub enum TokenTag {
     Keyword,
     Ident,

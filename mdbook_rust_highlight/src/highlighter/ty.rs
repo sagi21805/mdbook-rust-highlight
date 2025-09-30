@@ -2,7 +2,7 @@ use syn::{ReturnType, Type, TypeImplTrait, TypePath, TypeReference, TypeTuple};
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 
-impl<'ast> RustHighlighter<'ast> {
+impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_type(&mut self, token: &'ast Type) {
         match token {
             Type::Reference(token) => {

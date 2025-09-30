@@ -2,7 +2,7 @@ use syn::{Pat, PatIdent, PatOr, PatReference, PatTuple, PatTupleStruct, PatType}
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 
-impl<'ast> RustHighlighter<'ast> {
+impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_pat(&mut self, token: &'ast Pat) {
         match token {
             Pat::Ident(token) => {
@@ -29,9 +29,7 @@ impl<'ast> RustHighlighter<'ast> {
             Pat::Lit(token) => {
                 self.register_lit_expr(token);
             }
-            _ => {
-                self.register_ident_tag(token);
-            }
+            _ => {}
         }
     }
 

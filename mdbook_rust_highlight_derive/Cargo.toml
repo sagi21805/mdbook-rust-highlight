@@ -12,6 +12,6 @@ repository = "https://github.com/sagi21805/mdbook-rust-highlight"
 proc-macro = true
 
 [dependencies]
-syn = "2.0"
+syn = { version = "2.0", features = ["full"] }
 proc-macro2 = "1"
 quote = "1"

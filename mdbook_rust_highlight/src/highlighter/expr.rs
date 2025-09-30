@@ -2,12 +2,12 @@ use mdbook_rust_highlight_derive::add_try_method;
 use syn::{
     Arm, Expr, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprLit,
     ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprTry, ExprTuple, ExprUnary,
-    ExprUnsafe, Lit, Member,
+    ExprUnsafe, Lit, Member, spanned::Spanned,
 };
 
 use crate::highlighter::RustHighlighter;
 
-impl<'ast> RustHighlighter<'ast> {
+impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     #[add_try_method]
     pub(crate) fn register_expr(&mut self, token: &'ast Expr) {
         // MAKE A MACRO TO CREATE THIS AUTOMATICALLY
@@ -137,8 +137,17 @@ impl<'ast> RustHighlighter<'ast> {
     }
 
     pub(crate) fn register_call_expr(&mut self, token: &'ast ExprCall) {
-        // TODO UNDERSTAND HOW TO SIGNAL THIS PATH TO BE A FUNCTION
         self.register_expr(&token.func);
+        let token_position = token.span().byte_range();
+        for pos in token_position.start..token_position.end {
+            if let Some(unidentified) = self.unidentified.remove(&pos) {
+                if let Some(known) = self.ident_map.get(unidentified.ident.to_string().as_str()) {
+                    self.register_ident(&unidentified.ident, known.clone());
+                } else {
+                    self.register_function_tag(&unidentified.ident);
+                }
+            }
+        }
         for arg in &token.args {
             self.register_expr(arg);
         }
@@ -188,7 +197,6 @@ impl<'ast> RustHighlighter<'ast> {
     pub(crate) fn register_member(&mut self, token: &'ast Member) {
         match token {
             Member::Named(token) => {
-                // TODO Can mark this as variable
                 self.register_ident_tag(token);
             }
             Member::Unnamed(token) => {

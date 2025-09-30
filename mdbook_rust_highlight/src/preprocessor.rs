@@ -1,5 +1,6 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
+use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 use mdbook::{
     BookItem,
     book::{Book, Chapter},
@@ -8,25 +9,38 @@ use mdbook::{
 use regex::Regex;
 use ropey::Rope;
 
-use crate::highlighter::RustHighlighter;
-
 pub struct RustHighlighterPreprocessor;
 
 const HLRS_CODEBLOCK_REGEX: &str = r"```hlrs(?:,?([^\n]+))?\n([\s\S]*?)\n?```";
 const RUST_ICON_URL: &str = "@https://www.rust-lang.org/static/images/rust-logo-blk.svg";
+
+pub type IdentMap<'a> = &'a mut HashMap<&'static str, TokenTag>;
 
 impl Preprocessor for RustHighlighterPreprocessor {
     fn name(&self) -> &str {
         "rust-highlight"
     }
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
+        let ident_map: IdentMap = &mut HashMap::new();
+        // Maybe turn into an initialize function.
+        ident_map.insert("Ok", TokenTag::Enum);
+        ident_map.insert("Err", TokenTag::Enum);
+        ident_map.insert("self", TokenTag::SelfToken);
+        ident_map.insert("Self", TokenTag::SelfToken);
+        // ident_map.insert("Ok", TokenTag::Enum);
+
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
         for item in &mut book.sections {
             if let BookItem::Chapter(chapter) = item {
-                let registered_blocks = self.register_codeblock(ctx, chapter, &block_pat);
+                let registered_blocks =
+                    self.register_codeblock(ctx, chapter, &block_pat, ident_map);
+
                 Self::write_codeblock(chapter, registered_blocks);
             }
+        }
+        for (k, v) in ident_map {
+            eprintln!("{k} => {:?}", v);
         }
         Ok(book)
     }
@@ -38,6 +52,7 @@ impl RustHighlighterPreprocessor {
         ctx: &PreprocessorContext,
         chapter: &Chapter,
         pattern: &Regex,
+        ident_map: IdentMap,
     ) -> BTreeMap<usize, (usize, String)> {
         const GROUP_FULL: usize = 0;
         const GROUP_FEATURES: usize = 1;
@@ -55,7 +70,7 @@ impl RustHighlighterPreprocessor {
             let features = self.whichlang_features(ctx, caps.get(GROUP_FEATURES));
 
             let code = code_match.as_str();
-            let highlighted = RustHighlighter::highlight(code);
+            let highlighted = RustHighlighter::highlight(code, ident_map);
             let html =
                 format!("<pre><code class=\"language-hlrs {features}\">{highlighted}</code></pre>");
 

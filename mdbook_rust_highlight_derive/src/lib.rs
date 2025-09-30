@@ -1,6 +1,8 @@
-use proc_macro::TokenStream;
+use proc_macro::{Ident, TokenStream};
 use quote::{format_ident, quote};
-use syn::{Data, DeriveInput, Fields, FnArg, ItemFn, Type, parse_macro_input};
+use syn::{
+    Data, DeriveInput, FnArg, ItemFn, ItemImpl, Type, TypeImplTrait, parse_macro_input, parse_quote,
+};
 
 #[proc_macro_attribute]
 pub fn add_try_method(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -67,18 +69,28 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
         let variant_name = &v.ident;
         let variant_string = variant_name.to_string().to_lowercase();
         let token_method = format_ident!("register_{}_tag", variant_string);
+        let (register_function, impls): (_, syn::Type) = match variant_string.as_str() {
+            "function" | "type" | "enum" | "ident" => (
+                format_ident!("register_ident"),
+                parse_quote!(syn::spanned::Spanned + ToString),
+            ),
+            _ => (
+                format_ident!("register_tag"),
+                parse_quote!(syn::spanned::Spanned),
+            ),
+        };
 
         quote! {
             #[add_try_method]
-            pub(crate) fn #token_method(&mut self, token: &(impl syn::spanned::Spanned)) {
+            pub(crate) fn #token_method(&mut self, token: &(impl #impls)) {
                 let (start, end) = Self::span_position(token);
-                self.register_tag(token, #enum_name::#variant_name);
+                self.#register_function(token, #enum_name::#variant_name);
             }
         }
     });
 
     let expanded = quote! {
-        impl<'ast> RustHighlighter<'ast> {
+        impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             #(#methods)*
         }
     };
