@@ -197,7 +197,6 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_member(&mut self, token: &'ast Member) {
         match token {
             Member::Named(token) => {
-                // TODO Can mark this as variable
                 self.register_ident_tag(token);
             }
             Member::Unnamed(token) => {
