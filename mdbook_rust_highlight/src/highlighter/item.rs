@@ -1,4 +1,7 @@
-use syn::{FnArg, Item, ItemEnum, ItemFn, Visibility, token::Token};
+use syn::{
+    FnArg, Item, ItemEnum, ItemFn, ItemUse, PathSegment, UseTree, Visibility,
+    token::{self, Token},
+};
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 
@@ -10,6 +13,9 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             }
             Item::Enum(token) => {
                 self.register_enum_item(token);
+            }
+            Item::Use(token) => {
+                self.register_use_item(token);
             }
             _ => {}
         }
@@ -54,6 +60,35 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             self.register_enum_tag(&variant.ident);
             if let Some((_, discriminant)) = &variant.discriminant {
                 self.register_expr(discriminant);
+            }
+        }
+    }
+
+    pub(crate) fn register_use_item(&mut self, token: &'ast ItemUse) {
+        self.register_visibility(&token.vis);
+        self.register_keyword_tag(&token.use_token);
+        self.register_use_tree(&token.tree);
+    }
+
+    pub(crate) fn register_use_tree(&mut self, token: &'ast UseTree) {
+        match token {
+            UseTree::Glob(_) => {}
+            UseTree::Group(token) => {
+                for tree in &token.items {
+                    self.register_use_tree(tree);
+                }
+            }
+            UseTree::Path(token) => {
+                self.register_segment_tag(&token.ident);
+                self.register_use_tree(&token.tree);
+            }
+            UseTree::Name(token) => {
+                self.register_path_segment(, None);
+            }
+            UseTree::Rename(token) => {
+                self.register_segment_tag(&token.ident);
+                self.register_keyword_tag(&token.as_token);
+                self.register_segment_tag(&token.rename);
             }
         }
     }
