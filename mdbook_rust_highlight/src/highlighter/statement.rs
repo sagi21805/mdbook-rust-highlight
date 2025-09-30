@@ -4,7 +4,7 @@ use syn::{Block, LitStr, Local, LocalInit, Stmt, StmtMacro};
 
 use crate::highlighter::RustHighlighter;
 
-impl<'ast> RustHighlighter<'ast> {
+impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     #[add_try_method]
     pub(crate) fn register_statement(&mut self, token: &'ast Stmt) {
         match token {

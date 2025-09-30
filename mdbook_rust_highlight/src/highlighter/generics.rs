@@ -5,7 +5,7 @@ use syn::{
 
 use crate::highlighter::RustHighlighter;
 
-impl<'ast> RustHighlighter<'ast> {
+impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_capture_param(&mut self, token: &'ast CapturedParam) {
         match token {
             CapturedParam::Ident(token) => {
