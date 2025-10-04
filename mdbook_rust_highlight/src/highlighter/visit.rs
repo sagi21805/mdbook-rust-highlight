@@ -7,4 +7,6 @@ impl<'a, 'ast> Visit<'ast> for RustHighlighter<'a, 'ast> {
     fn visit_item(&mut self, i: &'ast Item) {
         self.register_item(i);
     }
+
+    fn visit_attribute(&mut self, i: &'ast syn::Attribute) {}
 }
