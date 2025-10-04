@@ -27,6 +27,9 @@ impl Preprocessor for RustHighlighterPreprocessor {
         ident_map.insert("Err", TokenTag::Enum);
         ident_map.insert("self", TokenTag::SelfToken);
         ident_map.insert("Self", TokenTag::SelfToken);
+        ident_map.insert("asm", TokenTag::Macro);
+        ident_map.insert("DISK_NUMBER_OFFSET", TokenTag::LitNum);
+        ident_map.insert("DiskAddressPacket", TokenTag::Type);
         // ident_map.insert("Ok", TokenTag::Enum);
 
         // Regex matches entire Rust code blocks including fences
@@ -38,9 +41,6 @@ impl Preprocessor for RustHighlighterPreprocessor {
 
                 Self::write_codeblock(chapter, registered_blocks);
             }
-        }
-        for (k, v) in ident_map {
-            eprintln!("{k} => {:?}", v);
         }
         Ok(book)
     }
