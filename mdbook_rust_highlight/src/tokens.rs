@@ -3,6 +3,7 @@ use std::cmp::{Ordering, Reverse};
 use crate::highlighter::RustHighlighter;
 use mdbook_rust_highlight_derive::{RegisterVariants, add_try_method};
 use strum_macros::AsRefStr;
+use syn::{Ident, PathSegment, spanned::Spanned};
 
 #[derive(AsRefStr, RegisterVariants, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
 pub enum TokenTag {
@@ -56,5 +57,39 @@ impl Ord for SpannedToken {
         (self.start, Reverse(self.end), self.kind.clone())
             .cmp(&(other.start, Reverse(other.end), other.kind.clone()))
             .then(Ordering::Greater)
+    }
+}
+
+#[derive()]
+pub enum PathToken<'ast> {
+    Segment(&'ast PathSegment),
+    Ident(&'ast Ident),
+}
+
+impl<'ast> PathToken<'ast> {
+    pub(crate) fn ident(&self) -> &'ast Ident {
+        match self {
+            Self::Ident(token) => token,
+            Self::Segment(token) => &token.ident,
+        }
+    }
+
+    pub(crate) fn span(&self) -> proc_macro2::Span {
+        match self {
+            Self::Ident(token) => token.span(),
+            Self::Segment(token) => token.span(),
+        }
+    }
+}
+
+impl<'ast> From<&'ast PathSegment> for PathToken<'ast> {
+    fn from(value: &'ast PathSegment) -> Self {
+        PathToken::Segment(value)
+    }
+}
+
+impl<'ast> From<&'ast Ident> for PathToken<'ast> {
+    fn from(value: &'ast Ident) -> Self {
+        PathToken::Ident(value)
     }
 }
