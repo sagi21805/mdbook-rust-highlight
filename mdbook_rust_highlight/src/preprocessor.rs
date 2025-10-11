@@ -31,17 +31,17 @@ impl Preprocessor for RustHighlighterPreprocessor {
         ident_map.insert("DISK_NUMBER_OFFSET", TokenTag::LitNum);
         ident_map.insert("DiskAddressPacket", TokenTag::Type);
         // ident_map.insert("Ok", TokenTag::Enum);
-
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
-        for item in &mut book.sections {
+        book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
+                eprintln!("{}", chapter.name);
                 let registered_blocks =
                     self.register_codeblock(ctx, chapter, &block_pat, ident_map);
 
                 Self::write_codeblock(chapter, registered_blocks);
             }
-        }
+        });
         Ok(book)
     }
 }
@@ -66,9 +66,8 @@ impl RustHighlighterPreprocessor {
                 Some(m) => m,
                 None => continue,
             };
-
             let features = self.whichlang_features(ctx, caps.get(GROUP_FEATURES));
-
+            eprintln!("{}", features);
             let code = code_match.as_str();
             let highlighted = RustHighlighter::highlight(code, ident_map);
             let html =
