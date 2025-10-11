@@ -13,11 +13,6 @@ fn test2() {
 
 ```
 
-```hlrs
-{{#webinclude https://raw.githubusercontent.com/sagi21805/LearnixOS/refs/heads/master/kernel/src/memory/allocators/page_allocator/allocator.rs }}
-```
-
-
 
 
 ```hlrs,fp=main.rs,icon=@https://icons.veryicon.com/png/o/business/vscode-program-item-icon/assembly-7.png
@@ -25,4 +20,3 @@ fn test2() {
 
 pub const async unsafe extern "C" fn function(a: b, mut c: D) -> Vec<TestType> {}
 ```
-
