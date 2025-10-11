@@ -1,13 +1,14 @@
 use crate::{
     highlighter::error::IdentificationError,
     preprocessor::IdentMap,
-    tokens::{SpannedToken, TokenTag},
+    tokens::{PathToken, SpannedToken, TokenTag},
 };
 use regex::Regex;
 use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
-use syn::{File, Ident, PathSegment, spanned::Spanned, visit::Visit};
+use syn::{File, Ident, spanned::Spanned, visit::Visit};
 
+pub mod attr;
 pub mod error;
 pub mod expr;
 pub mod generics;
@@ -20,7 +21,7 @@ pub mod visit;
 
 pub struct RustHighlighter<'a, 'ast> {
     token_set: BTreeSet<SpannedToken>,
-    unidentified: HashMap<usize, &'ast PathSegment>,
+    unidentified: HashMap<usize, PathToken<'ast>>,
     ident_map: IdentMap<'a>,
 }
 
@@ -28,7 +29,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn highlight(code: &str, ident_map: IdentMap<'a>) -> String {
         let mut highlighter = Self::new(ident_map);
 
-        let code = highlighter.register_boring(code);
+        // let code = highlighter.register_boring(code);
 
         let mut output = Rope::from_str(&code);
 
@@ -75,7 +76,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             TokenTag::NeedIdentification => {
                 let unidentified = self.unidentified.get(&token.start);
                 let ident_string = match unidentified {
-                    Some(segment) => segment.ident.to_string(),
+                    Some(segment) => segment.ident().to_string(),
                     None => return Err(IdentificationError::NoIdentificationNeeded),
                 };
 
@@ -122,9 +123,15 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.register_tag_at_index(start, end, tag);
     }
 
-    pub(crate) fn register_ident(&mut self, ident: &(impl Spanned + ToString), tag: TokenTag) {
+    pub(crate) fn register_ident(&mut self, ident: &Ident, tag: TokenTag) {
         self.remember_ident(ident, tag);
         self.register_tag(ident, tag);
+    }
+
+    pub(crate) fn register_unidentified(&mut self, token: PathToken<'ast>) {
+        self.register_tag(&token.ident(), TokenTag::NeedIdentification);
+        self.unidentified
+            .insert(token.span().byte_range().start, token);
     }
 
     pub(crate) fn register_comments(&mut self, code: &str) {

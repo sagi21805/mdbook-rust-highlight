@@ -1,8 +1,8 @@
 use mdbook_rust_highlight_derive::add_try_method;
 use syn::{
     Arm, Expr, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprLit,
-    ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprTry, ExprTuple, ExprUnary,
-    ExprUnsafe, Lit, Member, spanned::Spanned,
+    ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprTry, ExprTuple,
+    ExprUnary, ExprUnsafe, Lit, Member, spanned::Spanned,
 };
 
 use crate::highlighter::RustHighlighter;
@@ -10,7 +10,6 @@ use crate::highlighter::RustHighlighter;
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     #[add_try_method]
     pub(crate) fn register_expr(&mut self, token: &'ast Expr) {
-        // MAKE A MACRO TO CREATE THIS AUTOMATICALLY
         match token {
             Expr::Lit(token) => {
                 self.register_lit_expr(token);
@@ -63,6 +62,9 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Expr::Tuple(token) => {
                 self.register_tuple_expr(token);
             }
+            Expr::Loop(token) => {
+                self.register_loop_expr(token);
+            }
             _ => {}
         }
     }
@@ -98,6 +100,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_method_call_expr(&mut self, token: &'ast ExprMethodCall) {
         self.register_expr(&token.receiver);
         self.register_function_tag(&token.method);
+        eprintln!("method: {}", token.method.to_string());
         for arg in &token.args {
             self.register_expr(arg);
         }
@@ -141,10 +144,13 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         let token_position = token.span().byte_range();
         for pos in token_position.start..token_position.end {
             if let Some(unidentified) = self.unidentified.remove(&pos) {
-                if let Some(known) = self.ident_map.get(unidentified.ident.to_string().as_str()) {
-                    self.register_ident(&unidentified.ident, known.clone());
+                if let Some(known) = self
+                    .ident_map
+                    .get(unidentified.ident().to_string().as_str())
+                {
+                    self.register_ident(&unidentified.ident(), known.clone());
                 } else {
-                    self.register_function_tag(&unidentified.ident);
+                    self.register_unidentified(unidentified);
                 }
             }
         }
@@ -203,5 +209,10 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 self.register_litnum_tag(token);
             }
         }
+    }
+
+    pub(crate) fn register_loop_expr(&mut self, token: &'ast ExprLoop) {
+        self.register_keyword_tag(&token.loop_token);
+        self.register_block(&token.body);
     }
 }
