@@ -8,6 +8,7 @@ use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
 use syn::{File, Ident, spanned::Spanned, visit::Visit};
 
+pub mod structure ;
 pub mod attr;
 pub mod error;
 pub mod expr;
@@ -29,10 +30,9 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn highlight(code: &str, ident_map: IdentMap<'a>) -> String {
         let mut highlighter = Self::new(ident_map);
 
-        // let code = highlighter.register_boring(code);
+        let code = highlighter.register_boring(code);
 
         let mut output = Rope::from_str(&code);
-
         let syntax_tree: File =
             syn::parse_str(&code).expect(&format!("Failed to parse Rust code\n{}", code));
 
