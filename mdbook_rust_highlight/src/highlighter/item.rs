@@ -1,7 +1,6 @@
 use proc_macro2::TokenTree;
 use syn::{
-    FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemUse, LitStr, Macro,
-    Signature, UseTree, Visibility,
+    token, FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, LitStr, Macro, Signature, UseTree, Visibility
 };
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
@@ -24,8 +23,18 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Item::Impl(token) => {
                 self.register_impl_item(token);
             }
+            Item::Struct(token) => {
+                self.register_struct_item(token);
+            }
             _ => {}
         }
+    }
+
+    pub(crate) fn register_struct_item(&mut self, token: &'ast ItemStruct) {
+        self.register_visibility(&token.vis);
+        self.register_keyword_tag(&token.struct_token);
+        self.register_type_tag(&token.ident);
+        self.register_struct_fields(&token.fields);
     }
 
     pub(crate) fn register_function_item(&mut self, token: &'ast ItemFn) {
