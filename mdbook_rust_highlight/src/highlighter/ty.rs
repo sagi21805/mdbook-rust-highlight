@@ -1,4 +1,4 @@
-use syn::{ReturnType, Type, TypeImplTrait, TypePath, TypeReference, TypeTuple};
+use syn::{ReturnType, Type, TypeImplTrait, TypePath, TypePtr, TypeReference, TypeTuple};
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 
@@ -17,8 +17,18 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Type::ImplTrait(token) => {
                 self.register_impl_trait_type(token);
             }
+            Type::Ptr(token) => {
+                self.register_ptr_type(token);
+            }
             _ => {}
         }
+    }
+
+    pub(crate) fn register_ptr_type(&mut self, token: &'ast TypePtr) {
+        self.register_keyword_tag(&token.star_token);
+        self.try_register_keyword_tag(token.const_token.as_ref());
+        self.try_register_keyword_tag(token.mutability.as_ref());
+        self.register_type(&token.elem);
     }
 
     pub(crate) fn register_reference_type(&mut self, token: &'ast TypeReference) {
