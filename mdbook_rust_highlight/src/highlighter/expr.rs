@@ -1,11 +1,9 @@
 use mdbook_rust_highlight_derive::add_try_method;
 use syn::{
-    Arm, Expr, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprLit,
-    ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprTry, ExprTuple,
-    ExprUnary, ExprUnsafe, Lit, Member, spanned::Spanned,
+    spanned::Spanned, token::Token, Arm, Expr, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member
 };
 
-use crate::highlighter::RustHighlighter;
+use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     #[add_try_method]
@@ -65,8 +63,24 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Expr::Loop(token) => {
                 self.register_loop_expr(token);
             }
-            _ => {}
+            Expr::Struct(token) => {
+                self.register_struct_expr(token);
+            }
+            Expr::Macro(token) => {
+                self.register_macro(&token.mac);
+            }
+            _ => self.register_tag(token, TokenTag::Expr),
         }
+    }
+
+    pub(crate) fn register_struct_expr(&mut self, token: &'ast ExprStruct) {
+        self.try_register_qself(token.qself.as_ref());
+        self.register_path(&token.path, Some(TokenTag::Type));
+        for field in &token.fields {
+            self.register_field_value(field);
+        }
+        self.try_register_expr(token.rest.as_ref().map(|v|&**v));
+
     }
 
     pub(crate) fn register_lit_expr(&mut self, token: &'ast ExprLit) {
