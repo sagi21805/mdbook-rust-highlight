@@ -1,6 +1,7 @@
 use proc_macro2::TokenTree;
 use syn::{
-    token, FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, LitStr, Macro, Signature, UseTree, Visibility
+    FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, LitStr,
+    Macro, Signature, UseTree, Visibility, token,
 };
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
@@ -26,11 +27,15 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Item::Struct(token) => {
                 self.register_struct_item(token);
             }
+            Item::Static(token) => {
+                self.register_static_item(token);
+            }
             _ => {}
         }
     }
 
     pub(crate) fn register_struct_item(&mut self, token: &'ast ItemStruct) {
+        self.register_attributes(&token.attrs);
         self.register_visibility(&token.vis);
         self.register_keyword_tag(&token.struct_token);
         self.register_type_tag(&token.ident);
@@ -38,6 +43,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     pub(crate) fn register_function_item(&mut self, token: &'ast ItemFn) {
+        self.register_attributes(&token.attrs);
         self.register_visibility(&token.vis);
         self.register_function_sig(&token.sig);
         self.register_block(&token.block);
@@ -140,6 +146,13 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     // TODO COMPLETE
     pub(crate) fn register_impl_item(&mut self, token: &'ast ItemImpl) {
+        self.try_register_keyword_tag(token.unsafety.as_ref());
+        self.register_keyword_tag(&token.impl_token);
+        if let Some((_, trait_name, for_token)) = &token.trait_ {
+            self.register_path(trait_name, Some(TokenTag::Type));
+            self.register_keyword_tag(for_token);
+        }
+        self.register_type(&token.self_ty);
         for item in &token.items {
             self.register_item_impl(item)
         }
@@ -149,9 +162,10 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         match token {
             ImplItem::Const(token) => {}
             ImplItem::Fn(token) => {
+                self.register_attributes(&token.attrs);
                 self.register_visibility(&token.vis);
                 self.register_function_sig(&token.sig);
-                self.register_block(&token.block);
+                self.register_block(&token.block);  
             }
             ImplItem::Macro(token) => {
                 self.register_macro(&token.mac);
