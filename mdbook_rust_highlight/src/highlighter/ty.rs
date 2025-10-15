@@ -20,6 +20,10 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Type::Ptr(token) => {
                 self.register_ptr_type(token);
             }
+            Type::Array(token) => {
+                self.register_type(&token.elem);
+                self.register_expr(&token.len);
+            }
             _ => {}
         }
     }
