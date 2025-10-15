@@ -72,6 +72,11 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Expr::Return(token) => {
                 self.register_return_expr(token);
             }
+            Expr::Const(token) => {
+                self.register_attributes(&token.attrs);
+                self.register_keyword_tag(&token.const_token);
+                self.register_block(&token.block);
+            }
             _ => self.register_tag(token, TokenTag::Expr),
         }
     }

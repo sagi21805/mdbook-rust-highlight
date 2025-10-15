@@ -29,6 +29,11 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Pat::Lit(token) => {
                 self.register_lit_expr(token);
             }
+            Pat::Const(token) => {
+                self.register_attributes(&token.attrs);
+                self.register_keyword_tag(&token.const_token);
+                self.register_block(&token.block);
+            }
             _ => {}
         }
     }
