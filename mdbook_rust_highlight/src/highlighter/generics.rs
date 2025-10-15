@@ -1,11 +1,13 @@
 use syn::{
-    AngleBracketedGenericArguments, CapturedParam, GenericArgument, ParenthesizedGenericArguments,
-    PreciseCapture, TraitBound, TypeParamBound,
+    AngleBracketedGenericArguments, CapturedParam, GenericArgument, Generics,
+    ParenthesizedGenericArguments, PreciseCapture, TraitBound, TypeParamBound,
 };
 
 use crate::highlighter::RustHighlighter;
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
+    pub(crate) fn register_generics(&mut self, token: &'ast Generics) {}
+
     pub(crate) fn register_capture_param(&mut self, token: &'ast CapturedParam) {
         match token {
             CapturedParam::Ident(token) => {

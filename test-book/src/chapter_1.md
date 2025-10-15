@@ -1,5 +1,5 @@
 # Chapter 1
-```hlrs
+```rust
 
 fn test() {
 
@@ -13,7 +13,7 @@ fn test2() {
 
 ```
 
-```hlrs
+```rust
 macro_rules! impl_common_address_functions {
     ($struct_name:ident) => {
 #[allow(non_snake_case)]
@@ -54,7 +54,7 @@ mod ${concat(__impl_for_, $struct_name)} {
 ```
 
 
-```hlrs,fp=main.rs,icon=@https://icons.veryicon.com/png/o/business/vscode-program-item-icon/assembly-7.png
+```rust,fp=main.rs,icon=@https://icons.veryicon.com/png/o/business/vscode-program-item-icon/assembly-7.png
 
 
 pub const async unsafe extern "C" fn function(a: b, mut c: D) -> Vec<TestType> {}

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{char::UNICODE_VERSION, collections::{BTreeMap, HashMap}};
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 use mdbook::{
@@ -11,7 +11,7 @@ use ropey::Rope;
 
 pub struct RustHighlighterPreprocessor;
 
-const HLRS_CODEBLOCK_REGEX: &str = r"```hlrs(?:,?([^\n]+))?\n([\s\S]*?)\n?```";
+const HLRS_CODEBLOCK_REGEX: &str = r"```rust(?:,?([^\n]+))?\n([\s\S]*?)\n?```";
 const RUST_ICON_URL: &str = "@https://www.rust-lang.org/static/images/rust-logo-blk.svg";
 
 pub type IdentMap<'a> = &'a mut HashMap<&'static str, TokenTag>;
@@ -24,12 +24,21 @@ impl Preprocessor for RustHighlighterPreprocessor {
         let ident_map: IdentMap = &mut HashMap::new();
         // Maybe turn into an initialize function.
         ident_map.insert("Ok", TokenTag::Enum);
+        ident_map.insert("Some", TokenTag::Enum);
+        ident_map.insert("None", TokenTag::Enum);
         ident_map.insert("Err", TokenTag::Enum);
         ident_map.insert("self", TokenTag::SelfToken);
         ident_map.insert("Self", TokenTag::SelfToken);
         ident_map.insert("asm", TokenTag::Macro);
         ident_map.insert("DISK_NUMBER_OFFSET", TokenTag::LitNum);
         ident_map.insert("DiskAddressPacket", TokenTag::Type);
+        ident_map.insert("size_of", TokenTag::Enum);
+        ident_map.insert("protected_mode", TokenTag::Function);
+        ident_map.insert("read", TokenTag::Function);
+        ident_map.insert("write_volatile", TokenTag::Function);
+        ident_map.insert("empty", TokenTag::Function);
+        ident_map.insert("new", TokenTag::Function);
+        ident_map.insert("PAGE_DIRECTORY_ENTRIES", TokenTag::LitNum);
         // ident_map.insert("Ok", TokenTag::Enum);
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
@@ -67,7 +76,6 @@ impl RustHighlighterPreprocessor {
                 None => continue,
             };
             let features = self.whichlang_features(ctx, caps.get(GROUP_FEATURES));
-            eprintln!("{}", features);
             let code = code_match.as_str();
             let highlighted = RustHighlighter::highlight(code, ident_map);
             let html =

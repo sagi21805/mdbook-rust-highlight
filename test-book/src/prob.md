@@ -1,5 +1,5 @@
 
-```hlrs,fp=kernel/stages/first_stage/src/main.rs
+```rust,fp=kernel/stages/first_stage/src/main.rs
 
 // Static variable that holds our table
 static GLOBAL_DESCRIPTOR_TABLE: GlobalDescriptorTable = {
@@ -38,7 +38,7 @@ pub fn first_stage() -> ! {
 }
 ```
 
-```hlrs,fp=kernel\stages\first_stage\src\main.rs
+```rust,fp=kernel\stages\first_stage\src\main.rs
 #[unsafe(no_mangle)]
 pub fn first_stage() -> ! {
     // Read the disk number the os was booted from
@@ -56,7 +56,9 @@ pub fn first_stage() -> ! {
     );
     dap.load(disk_number);
 }
-```hlrs,fp=shared/cpu_utils/src/structures/paging/page_table.rs
+```
+
+```rust,fp=shared/cpu_utils/src/structures/paging/page_table.rs
 
 impl PageTable {
     pub unsafe fn empty_from_ptr(page_table_ptr: VirtualAddress) -> Option<&'static mut PageTable> {
@@ -75,7 +77,8 @@ impl PageTable {
     }
 }
 ```
-```hlrs,fp=shared/cpu_utils/src/structures/paging/page_table.rs
+
+```rust,fp=shared/cpu_utils/src/structures/paging/page_table.rs
 #[repr(align(4096))]
 pub struct PageTable {
     pub entries: [PageTableEntry; PAGE_DIRECTORY_ENTRIES],
@@ -91,7 +94,8 @@ impl PageTable {
 
 }
 ```
-```hlrs,fp=shared/cpu_utils/src/structures/paging/page_table_entry.rs
+
+```rust,fp=shared/cpu_utils/src/structures/paging/page_table_entry.rs
 
 impl PageTableEntry {
     /// Set all of the flags to zero.
@@ -131,7 +135,7 @@ impl PageTableEntry {
     }
 }
 ```
-```hlrs,fp=shared/cpu_utils/src/structures/paging/page_table_entry.rs
+```rust,fp=shared/cpu_utils/src/structures/paging/page_table_entry.rs
 impl PageTableEntry {
 
     /// Extract the address from the entry and return it without checking flags
@@ -166,7 +170,7 @@ impl PageTableEntry {
 }
 ```
 
-```hlrs,fp=shared/cpu_utils/src/structures/paging/entry_flags.rs
+```rust,fp=shared/cpu_utils/src/structures/paging/entry_flags.rs
 macro_rules! table_entry_flags {
     () => {
         // Is this entry present?
@@ -195,7 +199,7 @@ macro_rules! table_entry_flags {
         // Marks big pages blocks
         flag!(huge_page, 7);
 
-        // Page isn’t flushed from caches on address space switch
+        // Page isn't flushed from caches on address space switch
         // (PGE bit of CR4 register must be set)
         flag!(global, 8);
 

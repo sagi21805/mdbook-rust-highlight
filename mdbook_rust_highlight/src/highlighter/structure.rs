@@ -2,12 +2,10 @@ use syn::{Field, FieldValue, Fields, Member};
 
 use crate::highlighter::RustHighlighter;
 
-
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-
     pub(crate) fn register_struct_fields(&mut self, token: &'ast Fields) {
         match token {
-            Fields::Unit => {},
+            Fields::Unit => {}
             Fields::Named(token) => {
                 for token in &token.named {
                     self.register_field(token);
@@ -19,13 +17,12 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 }
             }
         }
-
     }
 
     pub(crate) fn register_field(&mut self, token: &'ast Field) {
         self.register_visibility(&token.vis);
         self.try_register_ident_tag(token.ident.as_ref());
-        self.register_type(&token.ty); 
+        self.register_type(&token.ty);
     }
 
     pub(crate) fn register_field_value(&mut self, token: &'ast FieldValue) {
@@ -37,5 +34,4 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
         self.register_expr(&token.expr);
     }
-    
 }

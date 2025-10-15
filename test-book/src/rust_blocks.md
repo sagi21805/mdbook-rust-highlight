@@ -1,4 +1,4 @@
-```hlrs,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
+```rust,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
 struct AccessByte(u8);
 
 struct LimitFlags(u8);
@@ -17,7 +17,7 @@ struct GlobalDescriptorTableEntry32 {
     base_high: u8,
 }
 ```
-```hlrs, fp=shared\common\src\macros.rs
+```rust, fp=shared\common\src\macros.rs
 #[macro_export]
 /// This macro will obtain `flag_name` and the corresponding `bit_number`
 ///
@@ -71,7 +71,7 @@ macro_rules! flag {
     };
 }
 ```
-```hlrs
+```rust
 struct Example(u8);
 
 impl Example {
@@ -80,7 +80,7 @@ impl Example {
     flag!(third, 3);
 }
 ```
-```hlrs
+```rust
 struct Example(u8);
 impl Example {
     #[inline]
@@ -193,7 +193,7 @@ impl Example {
     }
 }
 ```
-```hlrs,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
+```rust,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
 impl AccessByte {
     /// Creates an access byte with all flags turned off.
     pub const fn new() -> Self {
@@ -242,7 +242,7 @@ impl LimitFlags {
     flag!(long, 5);
 }
 ```
-```hlrs,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
+```rust,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
 impl GlobalDescriptorTableEntry32 {
     pub const fn new(
         base: u32,
@@ -271,7 +271,7 @@ impl GlobalDescriptorTableEntry32 {
     }
 }
 ```
-```hlrs,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
+```rust,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
 // This structure will seem as `dead code`
 // this is because we only initialize it
 // and don't use the fields directly
@@ -331,7 +331,7 @@ impl GlobalDescriptorTable {
     }
 }
 ```
-```hlrs,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
+```rust,fp=shared/cpu_utils/src/structures/global_descriptor_table.rs
 // The packed and repr(C) attributes are very important.
 // The repr(C) ensures the order of the data is as specified.
 // The packed attribute will ignore `Data Structure Alignment`
@@ -371,7 +371,7 @@ impl GlobalDescriptorTable {
     }
 }
 ```
-```hlrs,fp=main.rs
+```rust,fp=main.rs
 use core::arch::asm;
 
 #[unsafe(no_mangle)]
@@ -395,13 +395,13 @@ fn main() {
     }
 }
 ```
-```hlrs,fp=main.rs
+```rust,fp=main.rs
 fn main() {
     println!("Hello World!");
 }
 ```
 
-```hlrs,fp=<rust-doc>core/panic/panic_info.rs
+```rust,fp=<rust-doc>core/panic/panic_info.rs
 
 pub struct PanicInfo<'a> {
     message: &'a fmt::Arguments<'a>,
@@ -410,7 +410,7 @@ pub struct PanicInfo<'a> {
     force_no_backtrace: bool,
 }
 ```
-```hlrs,fp=main.rs
+```rust,fp=main.rs
 #![no_std]
 fn main() {
 
@@ -422,7 +422,7 @@ pub fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
 }
 ```
 
-```hlrs,fp=build.rs
+```rust,fp=build.rs
 use std::path::Path;
 
 fn main() {
@@ -437,7 +437,7 @@ fn main() {
     )
 }
 ```
-```hlrs
+```rust
 struct A(u32);
 
 impl A {
@@ -454,7 +454,7 @@ impl B {
     }
 }
 ```
-```hlrs,fp=main.rs
+```rust,fp=main.rs
 #![no_std]
 #![no_main]
 
@@ -467,7 +467,7 @@ pub fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 ```
-```hlrs,fp=kernel/stages/first_stage/src/disk.rs
+```rust,fp=kernel/stages/first_stage/src/disk.rs
 
 // The `repr(C)` means that the layout in memory will be as specified
 // because rust ABI doesn't state that this is promised.
@@ -494,7 +494,7 @@ pub struct DiskAddressPacket {
     abs_block_num: u64,
 }
 ```
-```hlrs,fp=shared\common\src\enums\bios_interrutps.rs
+```rust,fp=shared\common\src\enums\bios_interrutps.rs
 #[repr(u8)]
 // This enum will hold all of our BIOS interrupts numbers
 pub enum BiosInterrupts {
@@ -507,7 +507,7 @@ pub enum Disk {
     ExtendedRead = 0x42,
 }
 ```
-```hlrs,fp=kernel\stages\first_stage\src\disk.rs
+```rust,fp=kernel\stages\first_stage\src\disk.rs
 impl DiskAddressPacket {
     pub fn new(
         num_of_sectors: u16,
@@ -535,7 +535,7 @@ impl DiskAddressPacket {
     }
 }
 ```
-```hlrs,fp=kernel\stages\first_stage\src\disk.rs
+```rust,fp=kernel\stages\first_stage\src\disk.rs
 impl DiskAddressPacket {
     pub fn load(&self, disk_number: u8) {
         unsafe {
@@ -563,14 +563,13 @@ impl DiskAddressPacket {
     }
 }
 ```
-```hlrs,fp=shared\common\src\constants\addresses.rs
+```rust,fp=shared\common\src\constants\addresses.rs
 #[cfg(feature = "first_stage")]
 pub const DISK_NUMBER_OFFSET: u16 = 0x7BFE;
 ```
 
-```
 
-```hlrs,fp=shared/cpu_utils/src/structures/paging/page_table_entry.rs
+```rust,fp=shared/cpu_utils/src/structures/paging/page_table_entry.rs
 pub struct PageTableEntry(u64);
 
 impl PageTableEntry {
@@ -582,7 +581,7 @@ impl PageTableEntry {
     table_entry_flags!();
 }
 ```
-```hlrs,fp=shared/common/src/macros.rs
+```rust,fp=shared/common/src/macros.rs
 macro_rules! impl_common_address_functions {
     ($struct_name:ident) => {
 #[allow(non_snake_case)]
@@ -621,7 +620,7 @@ mod ${concat(__impl_for_, $struct_name)} {
     };
 }
 ```
-```hlrs,fp=shared/common/src/address_types.rs
+```rust,fp=shared/common/src/address_types.rs
 use derive_more::{
     Add, AddAssign, AsMut, AsRef, Div, DivAssign, From, Mul, MulAssign, Sub, SubAssign,
 };
@@ -666,7 +665,7 @@ pub struct VirtualAddress(pub usize);
 
 impl_common_address_functions!(VirtualAddress);
 ```
-```hlrs,fp=shared/cpu_utils/src/structures/paging/entry_flags.rs
+```rust,fp=shared/cpu_utils/src/structures/paging/entry_flags.rs
 #[derive(Debug, Clone)]
 pub struct PageEntryFlags(u64);
 

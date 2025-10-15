@@ -8,7 +8,6 @@ use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
 use syn::{File, Ident, spanned::Spanned, visit::Visit};
 
-pub mod structure ;
 pub mod attr;
 pub mod error;
 pub mod expr;
@@ -17,8 +16,11 @@ pub mod item;
 pub mod pat;
 pub mod path;
 pub mod statement;
+pub mod structure;
 pub mod ty;
 pub mod visit;
+pub mod global;
+
 
 pub struct RustHighlighter<'a, 'ast> {
     token_set: BTreeSet<SpannedToken>,
@@ -84,7 +86,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                     .ident_map
                     .get(ident_string.as_str())
                     .cloned()
-                    .unwrap_or(TokenTag::Ident);
+                    .unwrap_or(TokenTag::Type);
 
                 Ok(SpannedToken {
                     kind: identified,
@@ -135,9 +137,10 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     pub(crate) fn register_comments(&mut self, code: &str) {
-        let comment_regex: Regex = Regex::new(r"\/\/\/?[^\n]*").unwrap();
+        let comment_regex: Regex = Regex::new(r"\/\/\/?.*\n?").unwrap();
         for comment in comment_regex.captures_iter(code) {
             let m = comment.get(0).unwrap();
+            eprintln!("{:?}", m);
             self.register_tag_at_index(m.start(), m.end(), TokenTag::Comment);
         }
     }

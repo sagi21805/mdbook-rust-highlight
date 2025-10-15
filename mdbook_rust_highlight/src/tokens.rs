@@ -23,6 +23,10 @@ pub enum TokenTag {
     NeedIdentification,
     Boring,
     EndOfToken,
+    Expr,
+    Pat,
+    Attribute,
+    Item,
 }
 
 impl ToString for TokenTag {
