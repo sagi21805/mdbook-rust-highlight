@@ -80,7 +80,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_enum_item(&mut self, token: &'ast ItemEnum) {
         self.register_visibility(&token.vis);
         self.register_keyword_tag(&token.enum_token);
-        self.register_tag(&token.ident, TokenTag::Type);
+        self.register_tag(&token.ident, Some(TokenTag::Type));
         // TODO REGISTER GENERICS AND FIELDS
         for variant in &token.variants {
             self.register_enum_tag(&variant.ident);
@@ -121,7 +121,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     pub(crate) fn register_macro_item(&mut self, token: &'ast ItemMacro) {
         if let Some(name) = token.ident.as_ref() {
-            self.register_ident(name, TokenTag::Macro);
+            self.register_ident(name.into(), Some(TokenTag::Macro));
         }
         self.register_macro(&token.mac);
     }
@@ -165,7 +165,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 self.register_attributes(&token.attrs);
                 self.register_visibility(&token.vis);
                 self.register_function_sig(&token.sig);
-                self.register_block(&token.block);  
+                self.register_block(&token.block);
             }
             ImplItem::Macro(token) => {
                 self.register_macro(&token.mac);

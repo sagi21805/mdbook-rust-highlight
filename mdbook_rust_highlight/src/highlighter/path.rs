@@ -21,9 +21,11 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         tag: Option<TokenTag>,
     ) {
         self.register_path_argument(&token.arguments);
-        match tag {
-            None => self.register_unidentified(token.into()),
-            Some(tag) => self.register_ident(&token.ident, tag),
+
+        if let None = tag {
+            self.register_unidentified(token.into());
+        } else {
+            self.register_ident(&token.ident, tag);
         }
     }
 
@@ -40,7 +42,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     /// - `token:` - The path segment
     /// - `last:` - Optional tag to put for the last item of the path.
     ///
-    /// TODO ADD DOCUMENTATION AND PLAN WHAT HAPPENS IF NONE IS GIVEN
+    /// If last tag is not known, put need identification
     pub(crate) fn register_path(&mut self, token: &'ast Path, last_tag: Option<TokenTag>) {
         let mut segment_iter = token.segments.iter().rev();
         let last_segment = segment_iter.next();

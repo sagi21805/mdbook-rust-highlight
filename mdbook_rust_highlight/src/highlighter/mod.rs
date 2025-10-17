@@ -12,6 +12,7 @@ pub mod attr;
 pub mod error;
 pub mod expr;
 pub mod generics;
+pub mod global;
 pub mod item;
 pub mod pat;
 pub mod path;
@@ -19,8 +20,6 @@ pub mod statement;
 pub mod structure;
 pub mod ty;
 pub mod visit;
-pub mod global;
-
 
 pub struct RustHighlighter<'a, 'ast> {
     token_set: BTreeSet<SpannedToken>,
@@ -53,11 +52,10 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 Ok(identified) => identified,
                 Err(IdentificationError::AlreadyIdentified) => token.clone(),
                 Err(IdentificationError::NoIdentificationNeeded) => {
-                    let _ = set_iterator.next();
                     continue;
                 }
             };
-            let tag = identified.kind.to_string();
+            let tag = identified.kind.unwrap().to_string();
             output.insert(identified.start + tok_offset, tag.as_str());
             tok_offset += tag.len();
         }
@@ -75,7 +73,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         token: &SpannedToken,
     ) -> Result<SpannedToken, IdentificationError> {
         match token.kind {
-            TokenTag::NeedIdentification => {
+            None => {
                 let unidentified = self.unidentified.get(&token.start);
                 let ident_string = match unidentified {
                     Some(segment) => segment.ident().to_string(),
@@ -89,12 +87,12 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                     .unwrap_or(TokenTag::Type);
 
                 Ok(SpannedToken {
-                    kind: identified,
+                    kind: Some(identified),
                     start: token.start,
                     end: token.end,
                 })
             }
-            _ => Err(IdentificationError::AlreadyIdentified),
+            Some(_) => Err(IdentificationError::AlreadyIdentified),
         }
     }
 
@@ -107,31 +105,40 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         (span.start, span.end)
     }
 
-    pub(crate) fn register_tag_at_index(&mut self, start: usize, end: usize, tag: TokenTag) {
+    pub(crate) fn register_tag_at_index(
+        &mut self,
+        start: usize,
+        end: usize,
+        tag: Option<TokenTag>,
+    ) {
         self.token_set.insert(SpannedToken {
             kind: tag,
             start,
             end,
         });
         self.token_set.insert(SpannedToken {
-            kind: TokenTag::EndOfToken,
+            kind: Some(TokenTag::EndOfToken),
             start: end,
             end: usize::MAX,
         });
     }
 
-    pub(crate) fn register_tag(&mut self, token: &impl Spanned, tag: TokenTag) {
+    pub(crate) fn register_tag(&mut self, token: &impl Spanned, tag: Option<TokenTag>) {
         let (start, end) = Self::span_position(&token.span());
         self.register_tag_at_index(start, end, tag);
     }
 
-    pub(crate) fn register_ident(&mut self, ident: &Ident, tag: TokenTag) {
-        self.remember_ident(ident, tag);
-        self.register_tag(ident, tag);
+    pub(crate) fn register_ident(&mut self, token: &Ident, tag: Option<TokenTag>) {
+        self.register_tag(token, tag);
+        if let Some(tag) = tag {
+            self.remember_ident(token, tag);
+        } else {
+            unimplemented!("Use register unidentified instead, later will require only TokenTag")
+        }
     }
 
     pub(crate) fn register_unidentified(&mut self, token: PathToken<'ast>) {
-        self.register_tag(&token.ident(), TokenTag::NeedIdentification);
+        self.register_tag(token.ident(), None);
         self.unidentified
             .insert(token.span().byte_range().start, token);
     }
@@ -140,8 +147,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         let comment_regex: Regex = Regex::new(r"\/\/\/?.*\n?").unwrap();
         for comment in comment_regex.captures_iter(code) {
             let m = comment.get(0).unwrap();
-            eprintln!("{:?}", m);
-            self.register_tag_at_index(m.start(), m.end(), TokenTag::Comment);
+            self.register_tag_at_index(m.start(), m.end(), Some(TokenTag::Comment));
         }
     }
 
@@ -158,7 +164,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 let start = string_offset + hash_position;
                 let end = string_offset + line.len() - 2;
                 output.push_str(after_hash);
-                self.register_tag_at_index(start, end, TokenTag::Boring);
+                self.register_tag_at_index(start, end, Some(TokenTag::Boring));
             } else {
                 output.push_str(line);
             }

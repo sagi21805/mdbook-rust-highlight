@@ -75,7 +75,7 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
             }
             _ => (
                 format_ident!("register_tag"),
-                parse_quote!(impl syn::spanned::Spanned),
+                parse_quote!((impl syn::spanned::Spanned)),
             ),
         };
 
@@ -83,7 +83,7 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
             #[add_try_method]
             pub(crate) fn #token_method(&mut self, token: &#impls) {
                 let (start, end) = Self::span_position(token);
-                self.#register_function(token, #enum_name::#variant_name);
+                self.#register_function(token.into(), Some(#enum_name::#variant_name));
             }
         }
     });

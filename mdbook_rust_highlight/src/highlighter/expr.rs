@@ -1,6 +1,8 @@
 use mdbook_rust_highlight_derive::add_try_method;
 use syn::{
-    spanned::Spanned, token, Arm, Expr, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member
+    Arm, Expr, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprLit,
+    ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprReturn,
+    ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member, spanned::Spanned, token,
 };
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
@@ -82,7 +84,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 self.register_expr(&token.expr);
                 self.register_expr(&token.len);
             }
-            _ => self.register_tag(token, TokenTag::Expr),
+            _ => self.register_tag(token, Some(TokenTag::Expr)),
         }
     }
 
@@ -132,7 +134,6 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_method_call_expr(&mut self, token: &'ast ExprMethodCall) {
         self.register_expr(&token.receiver);
         self.register_function_tag(&token.method);
-        eprintln!("method: {}", token.method.to_string());
         for arg in &token.args {
             self.register_expr(arg);
         }
@@ -174,15 +175,13 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_call_expr(&mut self, token: &'ast ExprCall) {
         self.register_expr(&token.func);
         let token_position = token.span().byte_range();
+        // TODO Logic may be broken
         for pos in token_position.start..token_position.end {
-            if let Some(unidentified) = self.unidentified.remove(&pos) {
-                if let Some(known) = self
-                    .ident_map
-                    .get(unidentified.ident().to_string().as_str())
-                {
-                    self.register_ident(&unidentified.ident(), known.clone());
+            if let Some(identified) = self.unidentified.remove(&pos) {
+                if let Some(known) = self.ident_map.get(identified.ident().to_string().as_str()) {
+                    self.register_ident(identified.ident(), Some(known.clone()));
                 } else {
-                    self.register_unidentified(unidentified);
+                    self.register_unidentified(identified);
                 }
             }
         }

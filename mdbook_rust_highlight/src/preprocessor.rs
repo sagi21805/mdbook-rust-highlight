@@ -1,4 +1,4 @@
-use std::{char::UNICODE_VERSION, collections::{BTreeMap, HashMap}};
+use std::collections::{BTreeMap, HashMap};
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 use mdbook::{
@@ -44,7 +44,6 @@ impl Preprocessor for RustHighlighterPreprocessor {
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                eprintln!("{}", chapter.name);
                 let registered_blocks =
                     self.register_codeblock(ctx, chapter, &block_pat, ident_map);
 

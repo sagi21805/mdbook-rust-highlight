@@ -20,7 +20,6 @@ pub enum TokenTag {
     Segment,
     Comment,
     LifeTime,
-    NeedIdentification,
     Boring,
     EndOfToken,
     Expr,
@@ -41,7 +40,7 @@ impl ToString for TokenTag {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SpannedToken {
-    pub(crate) kind: TokenTag,
+    pub(crate) kind: Option<TokenTag>,
     pub(crate) start: usize,
     pub(crate) end: usize,
 }
@@ -64,7 +63,7 @@ impl Ord for SpannedToken {
     }
 }
 
-#[derive()]
+#[derive(Clone)]
 pub enum PathToken<'ast> {
     Segment(&'ast PathSegment),
     Ident(&'ast Ident),
