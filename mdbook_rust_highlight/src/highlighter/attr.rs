@@ -1,6 +1,4 @@
-use std::path::Path;
-
-use syn::{parse::Parse, parse_macro_input, punctuated::Punctuated, token::Paren, AttrStyle, Attribute, Ident, Meta, Token};
+use syn::{AttrStyle, Attribute, Ident, Meta, Token, parse::Parse, punctuated::Punctuated};
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 
@@ -14,16 +12,19 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                         self.register_path(path, Some(TokenTag::Function));
                     }
                     Meta::List(list) => {
-                        self.register_path(&list.path, Some(TokenTag::Function));
-                        let ident_list= syn::parse2::<IdentList>(list.tokens.clone());
+                        if list.path.get_ident().unwrap().to_string() == "unsafe" {
+                            self.register_keyword_tag(&list.path);
+                        } else {
+                            self.register_path(&list.path, Some(TokenTag::Function));
+                        }
+                        let ident_list = syn::parse2::<IdentList>(list.tokens.clone());
                         match ident_list {
                             Ok(list) => {
-                                eprintln!("here!!!!@@@@#"); 
                                 for item in &list.idents {
                                     self.register_type_tag(item);
                                 }
                             }
-                            _ => {eprintln!("##ERROR##")}
+                            _ => {}
                         }
                     }
                     Meta::NameValue(name_val) => {}
@@ -35,7 +36,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 }
 
 struct IdentList {
-    idents: Punctuated<Ident, Token![,]>
+    idents: Punctuated<Ident, Token![,]>,
 }
 
 impl Parse for IdentList {
