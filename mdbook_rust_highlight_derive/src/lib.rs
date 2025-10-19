@@ -70,7 +70,7 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
         let variant_string = variant_name.to_string().to_lowercase();
         let token_method = format_ident!("register_{}_tag", variant_string);
         let (register_function, impls): (_, syn::Type) = match variant_string.as_str() {
-            "function" | "type" | "enum" | "ident" => {
+            "function" | "type" | "enum" | "ident" | "const" => {
                 (format_ident!("register_ident"), parse_quote!(Ident))
             }
             _ => (

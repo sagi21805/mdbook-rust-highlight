@@ -24,6 +24,7 @@ pub enum TokenTag {
     EndOfToken,
     Expr,
     Pat,
+    Const,
     Attribute,
     Item,
 }
