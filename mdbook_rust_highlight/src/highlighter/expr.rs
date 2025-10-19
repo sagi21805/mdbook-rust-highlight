@@ -1,8 +1,9 @@
 use mdbook_rust_highlight_derive::add_try_method;
 use syn::{
-    Arm, Expr, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprLit,
-    ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprReturn,
-    ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member, spanned::Spanned, token,
+    Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop,
+    ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference,
+    ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member,
+    spanned::Spanned, token,
 };
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
@@ -84,8 +85,17 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 self.register_expr(&token.expr);
                 self.register_expr(&token.len);
             }
+            Expr::Assign(token) => {
+                self.register_assign_expr(token);
+            }
             _ => self.register_tag(token, Some(TokenTag::Expr)),
         }
+    }
+
+    pub(crate) fn register_assign_expr(&mut self, token: &'ast ExprAssign) {
+        self.register_attributes(&token.attrs);
+        self.register_expr(&token.left);
+        self.register_expr(&token.right);
     }
 
     pub(crate) fn register_return_expr(&mut self, token: &'ast ExprReturn) {
