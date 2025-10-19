@@ -33,19 +33,12 @@ impl Preprocessor for RustHighlighterPreprocessor {
         ident_map.insert("DISK_NUMBER_OFFSET", TokenTag::LitNum);
         ident_map.insert("DiskAddressPacket", TokenTag::Type);
         ident_map.insert("size_of", TokenTag::Enum);
-        ident_map.insert("protected_mode", TokenTag::Function);
-        ident_map.insert("read", TokenTag::Function);
-        ident_map.insert("write_volatile", TokenTag::Function);
-        ident_map.insert("empty", TokenTag::Function);
-        ident_map.insert("new", TokenTag::Function);
         ident_map.insert("PAGE_DIRECTORY_ENTRIES", TokenTag::LitNum);
-        // ident_map.insert("Ok", TokenTag::Enum);
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                let registered_blocks =
-                    self.register_codeblock(ctx, chapter, &block_pat, ident_map);
+                let registered_blocks = self.register_chatper(ctx, chapter, &block_pat, ident_map);
 
                 Self::write_codeblock(chapter, registered_blocks);
             }
@@ -55,7 +48,7 @@ impl Preprocessor for RustHighlighterPreprocessor {
 }
 
 impl RustHighlighterPreprocessor {
-    fn register_codeblock(
+    fn register_chatper(
         &self,
         ctx: &PreprocessorContext,
         chapter: &Chapter,
@@ -79,7 +72,6 @@ impl RustHighlighterPreprocessor {
             let highlighted = RustHighlighter::highlight(code, ident_map);
             let html =
                 format!("<pre><code class=\"language-hlrs {features}\">{highlighted}</code></pre>");
-
             chap_replacement.insert(full.start(), (full.end(), html));
         }
         chap_replacement

@@ -32,6 +32,6 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             }
             Member::Unnamed(_) => {}
         }
-        self.register_expr(&token.expr);
+        self.register_expr(&token.expr, None);
     }
 }

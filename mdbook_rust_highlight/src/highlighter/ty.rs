@@ -22,7 +22,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             }
             Type::Array(token) => {
                 self.register_type(&token.elem);
-                self.register_expr(&token.len);
+                self.register_expr(&token.len, None);
             }
             _ => {}
         }

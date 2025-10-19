@@ -1,4 +1,7 @@
-use syn::{AttrStyle, Attribute, Ident, Meta, Token, parse::Parse, punctuated::Punctuated};
+use syn::{
+    AttrStyle, Attribute, Expr, Ident, Meta, MetaNameValue, Path, Token, parse::Parse,
+    punctuated::Punctuated,
+};
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 
@@ -14,6 +17,9 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         if token.pound_token.span.byte_range().len() == 1 {
             self.register_attribute_tag(&token.pound_token);
             self.register_attribute_tag(&token.bracket_token.span.join());
+        } else {
+            // If we are this means the attribute is a comment, so we return.
+            return;
         }
         match token.style {
             AttrStyle::Outer => match &token.meta {
@@ -35,10 +41,18 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                         }
                         _ => {}
                     }
+                    let name_val = syn::parse2::<MetaNameValue>(list.tokens.clone());
+                    match name_val {
+                        Ok(name_val) => {
+                            self.register_ident_tag(&name_val.path.get_ident().unwrap());
+                            self.register_litstr_tag(&name_val.value);
+                        }
+                        _ => {}
+                    }
                 }
                 Meta::NameValue(name_val) => {
                     self.register_path(&name_val.path, Some(TokenTag::Ident));
-                    self.register_expr(&name_val.value);
+                    self.register_expr(&name_val.value, None);
                 }
             },
             AttrStyle::Inner(not) => {
@@ -63,4 +77,10 @@ impl Parse for IdentList {
         let idents = input.parse_terminated(Ident::parse, Token![,])?;
         Ok(IdentList { idents })
     }
+}
+
+struct NameValue {
+    path: Path,
+    equel: Token![=],
+    expr: Expr,
 }

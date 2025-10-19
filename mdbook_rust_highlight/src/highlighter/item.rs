@@ -71,7 +71,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                     self.try_register_lifetime_tag(arg.lifetime());
                 }
                 FnArg::Typed(type_pat) => {
-                    self.register_type_pattern(type_pat);
+                    self.register_type_pat(type_pat);
                     self.register_type(&type_pat.ty);
                 }
             }
@@ -81,6 +81,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     pub(crate) fn register_enum_item(&mut self, token: &'ast ItemEnum) {
+        self.register_attributes(&token.attrs);
         self.register_visibility(&token.vis);
         self.register_keyword_tag(&token.enum_token);
         self.register_tag(&token.ident, Some(TokenTag::Type));
@@ -88,7 +89,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         for variant in &token.variants {
             self.register_enum_tag(&variant.ident);
             if let Some((_, discriminant)) = &variant.discriminant {
-                self.register_expr(discriminant);
+                self.register_expr(discriminant, None);
             }
         }
     }
