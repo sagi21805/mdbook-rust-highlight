@@ -1,6 +1,6 @@
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 use mdbook_rust_highlight_derive::add_try_method;
-use syn::{Path, PathArguments, PathSegment, QSelf};
+use syn::{Path, PathArguments, PathSegment, QSelf, token::Token};
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_path_argument(&mut self, token: &'ast PathArguments) {
@@ -47,7 +47,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         let mut segment_iter = token.segments.iter().rev();
         let last_segment = segment_iter.next();
         for segment in segment_iter {
-            self.register_path_segment(segment, None);
+            self.register_segment_tag(segment);
         }
         if let Some(seg) = last_segment {
             if let Some(known) = self.ident_map.get(seg.ident.to_string().as_str()) {
