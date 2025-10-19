@@ -30,6 +30,9 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Item::Static(token) => {
                 self.register_static_item(token);
             }
+            Item::Const(token) => {
+                self.register_const_item(token);
+            }
             _ => {}
         }
     }
