@@ -1,15 +1,11 @@
-use mdbook_rust_highlight_derive::add_try_method;
 use syn::{
     Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop,
     ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference,
-    ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member, ext::IdentExt,
-    spanned::Spanned, token,
+    ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member,
+    spanned::Spanned,
 };
 
-use crate::{
-    highlighter::{RustHighlighter, error::IdentificationError},
-    tokens::TokenTag,
-};
+use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_expr(&mut self, token: &'ast Expr, identifier: Option<TokenTag>) {
