@@ -1,6 +1,5 @@
 use syn::{
-    AttrStyle, Attribute, Expr, Ident, Meta, MetaNameValue, Path, Token, parse::Parse,
-    punctuated::Punctuated,
+    AttrStyle, Attribute, Ident, Meta, MetaNameValue, Token, parse::Parse, punctuated::Punctuated,
 };
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
@@ -77,10 +76,4 @@ impl Parse for IdentList {
         let idents = input.parse_terminated(Ident::parse, Token![,])?;
         Ok(IdentList { idents })
     }
-}
-
-struct NameValue {
-    path: Path,
-    equel: Token![=],
-    expr: Expr,
 }
