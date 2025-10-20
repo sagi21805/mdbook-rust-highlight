@@ -1,6 +1,4 @@
-use syn::{
-    Ident, Pat, PatIdent, PatOr, PatReference, PatTuple, PatTupleStruct, PatType, token::Token,
-};
+use syn::{Pat, PatIdent, PatOr, PatReference, PatTuple, PatTupleStruct, PatType};
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
 

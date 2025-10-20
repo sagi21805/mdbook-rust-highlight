@@ -1,7 +1,7 @@
-use proc_macro2::TokenTree;
+use proc_macro2::{TokenStream, TokenTree};
 use syn::{
     FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, LitStr,
-    Macro, Signature, UseTree, Visibility, token,
+    Macro, Signature, UseTree, Visibility,
 };
 
 use crate::{highlighter::RustHighlighter, tokens::TokenTag};
