@@ -1,8 +1,9 @@
-use syn::{
-    AttrStyle, Attribute, Ident, Meta, MetaNameValue, Token, parse::Parse, punctuated::Punctuated,
-};
+use syn::{AttrStyle, Attribute, Meta, MetaNameValue};
 
-use crate::{highlighter::RustHighlighter, tokens::TokenTag};
+use crate::{
+    highlighter::{RustHighlighter, macro_parsers::ident_list::IdentList},
+    tokens::TokenTag,
+};
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_attributes(&mut self, token: &'ast Vec<Attribute>) {
@@ -64,16 +65,5 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 }
             }
         }
-    }
-}
-
-struct IdentList {
-    idents: Punctuated<Ident, Token![,]>,
-}
-
-impl Parse for IdentList {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let idents = input.parse_terminated(Ident::parse, Token![,])?;
-        Ok(IdentList { idents })
     }
 }

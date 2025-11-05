@@ -14,6 +14,7 @@ pub mod expr;
 pub mod generics;
 pub mod global;
 pub mod item;
+pub mod macro_parsers;
 pub mod pat;
 pub mod path;
 pub mod statement;

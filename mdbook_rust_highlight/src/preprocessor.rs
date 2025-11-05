@@ -34,6 +34,7 @@ impl Preprocessor for RustHighlighterPreprocessor {
         ident_map.insert("DiskAddressPacket", TokenTag::Type);
         ident_map.insert("size_of", TokenTag::Enum);
         ident_map.insert("PAGE_DIRECTORY_ENTRIES", TokenTag::LitNum);
+        ident_map.insert("Ring0", TokenTag::Enum);
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
         book.for_each_mut(|item| {
