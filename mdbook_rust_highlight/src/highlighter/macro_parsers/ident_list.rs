@@ -1,7 +1,7 @@
 use syn::{Ident, Token, parse::Parse, punctuated::Punctuated};
 
 pub struct IdentList {
-    idents: Punctuated<Ident, Token![,]>,
+    pub idents: Punctuated<Ident, Token![,]>,
 }
 
 impl Parse for IdentList {
@@ -12,7 +12,7 @@ impl Parse for IdentList {
 }
 
 pub struct ExperList {
-    exprs: Punctuated<syn::Expr, Token![,]>,
+    pub exprs: Punctuated<syn::Expr, Token![,]>,
 }
 
 impl Parse for ExperList {
