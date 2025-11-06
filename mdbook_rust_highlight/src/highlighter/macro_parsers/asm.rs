@@ -13,7 +13,8 @@ pub struct AsmArgs {
 
 impl Parse for AsmArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
+        let inputs = input.parse_terminated(AsmInput::parse, Token![,])?;
+        Ok(AsmArgs { inputs })
     }
 }
 
@@ -25,7 +26,22 @@ pub enum AsmInput {
 
 impl Parse for AsmInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
+        let initial_ident: Ident = match input.parse() {
+            Ok(i) => i,
+            Err(_) => {
+                let instr: LitStr = input.parse()?;
+                return Ok(AsmInput::Instruction(instr));
+            }
+        };
+        if input.peek(Token![=]) {
+            // Must be reg operand
+            todo!();
+        };
+        if input.peek(Paren) {
+            // Can be Options or some of the reg operands
+            todo!()
+        };
+        // must be label
     }
 }
 
@@ -130,9 +146,19 @@ impl Parse for Label {
     }
 }
 
-pub enum ExprOperand {
+pub enum Operand {
     Directive(OperandDirective),
     DualDirective(OperandDualDirective),
+}
+
+impl Parse for Operand {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        todo!()
+    }
+}
+
+pub enum ExprOperand {
+    Operand(Operand),
     Symbol(ExprSym),
     Constant(ExprConstAsm),
     Label(Label),
@@ -140,7 +166,10 @@ pub enum ExprOperand {
 
 impl Parse for ExprOperand {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
+        if input.peek2(Paren) {
+            return Ok(ExprOperand::Operand(input.parse::<Operand>()?));
+        } else if input.peek(token) {
+        }
     }
 }
 
