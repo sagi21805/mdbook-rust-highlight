@@ -1,20 +1,21 @@
+use super::ident_list::IdentList;
+// use proc_macro2::Span;
 use syn::{
     Expr, ExprPath, Ident, LitStr, Stmt, Token,
     parse::Parse,
     punctuated::Punctuated,
+    spanned::Spanned,
     token::{Brace, Paren},
 };
 
-use super::ident_list::IdentList;
-
 pub struct AsmArgs {
-    inputs: Punctuated<AsmInput, Token![,]>,
+    pub args: Punctuated<AsmInput, Token![,]>,
 }
 
 impl Parse for AsmArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            inputs: input.parse_terminated(AsmInput::parse, Token![,])?,
+            args: input.parse_terminated(AsmInput::parse, Token![,])?,
         })
     }
 }
@@ -27,22 +28,16 @@ pub enum AsmInput {
 
 impl Parse for AsmInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let initial_ident: Ident = match input.parse() {
-            Ok(i) => i,
-            Err(_) => {
-                let instr: LitStr = input.parse()?;
-                return Ok(AsmInput::Instruction(instr));
+        if input.peek(LitStr) {
+            return Ok(Self::Instruction(input.parse()?));
+        }
+        if input.peek(Ident) {
+            match input.parse::<AsmOptions>() {
+                Ok(options) => return Ok(Self::Options(options)),
+                Err(_) => {}
             }
-        };
-        if input.peek(Token![=]) {
-            // Must be reg operand
-            todo!();
-        };
-        if input.peek(Paren) {
-            // Can be Options or some of the reg operands
-            todo!()
-        };
-        // must be label
+        }
+        Ok(Self::RegOperand(input.parse()?))
     }
 }
 
@@ -55,7 +50,7 @@ pub struct AsmOptions {
 
 impl Parse for AsmOptions {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let option_token: Ident = input.parse()?;
+        let option_token = input.parse::<Ident>()?;
         if option_token.to_string() != "options" {
             return Err(syn::Error::new_spanned(
                 option_token,
@@ -101,7 +96,19 @@ pub struct OperandDirective {
 impl Parse for OperandDirective {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let reg_buf;
-        let directive = input.parse()?;
+
+        let directive: Ident = if input.peek(Token![in]) {
+            let kw = input.parse::<Token![in]>()?;
+            Ident::new("in", kw.span())
+        } else if input.peek(Token![const]) {
+            let kw = input.parse::<Token![const]>()?;
+            Ident::new("const", kw.span())
+        } else {
+            eprintln!("here");
+            input.parse()?
+        };
+        eprintln!("directive: {}", directive.to_string());
+
         let paren = syn::parenthesized!(reg_buf in input);
         let reg = reg_buf.parse()?;
         let expr = input.parse()?;
@@ -136,6 +143,17 @@ pub struct Label {
     pub stmt: Stmt,
 }
 
+impl Parse for Label {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let content;
+        Ok(Self {
+            label_token: input.parse()?,
+            brackets: syn::braced!(content in input),
+            stmt: content.parse()?,
+        })
+    }
+}
+
 pub enum ExprOperand {
     Operand(OperandDirective),
     Symbol(ExprSym),
@@ -145,22 +163,50 @@ pub enum ExprOperand {
 
 impl Parse for ExprOperand {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.peek2(Paren) {
-            return Ok(ExprOperand::Operand(input.parse::<OperandDirective>()?));
-        } else if input.peek(Brace) {
-            let content;
-            let brace = syn::braced!(content in input);
+        if (input.peek(Ident) || input.peek(Token![in])) && input.peek2(Paren) {
+            return Ok(Self::Operand(input.parse::<OperandDirective>()?));
         }
+        if input.peek(Ident) && input.peek2(Brace) {
+            return Ok(Self::Label(input.parse::<Label>()?));
+        }
+        if input.peek(Token![const]) {
+            let kw = input.parse::<Token![const]>()?;
+            let const_ident = Ident::new("const", kw.span());
+            let expr = input.parse()?;
+            return Ok(Self::Constant(ExprConstAsm {
+                const_token: const_ident,
+                expr,
+            }));
+        }
+        let ident = input.parse::<Ident>()?;
+        if ident == "sym" {
+            return Ok(Self::Symbol(ExprSym {
+                sym_token: ident,
+                expr: input.parse()?,
+            }));
+        }
+        return Err(input.error("Expected Operand, Symbol, Const or Label"));
     }
 }
 
 pub struct RegOperand {
-    pub param_name_eq: Option<(Ident, Token![=])>,
+    pub param_eq: Option<(Ident, Token![=])>,
     pub expr: ExprOperand,
 }
 
 impl Parse for RegOperand {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
+        // check first token is an Ident and second is '='
+        let param_eq = if input.peek(Ident) && input.peek2(Token![=]) {
+            let param = input.parse()?;
+            let eq = input.parse()?;
+            Some((param, eq))
+        } else {
+            None
+        };
+        Ok(RegOperand {
+            param_eq: param_eq,
+            expr: input.parse()?,
+        })
     }
 }

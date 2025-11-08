@@ -4,7 +4,13 @@ use syn::{
     Macro, Signature, UseTree, Visibility,
 };
 
-use crate::{highlighter::RustHighlighter, tokens::TokenTag};
+use crate::{
+    highlighter::{
+        RustHighlighter,
+        macro_parsers::asm::{AsmArgs, AsmInput, AsmOptions, ExprOperand, RegOperand, RegSpec},
+    },
+    tokens::TokenTag,
+};
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_item(&mut self, token: &'ast Item) {
@@ -132,18 +138,76 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     pub(crate) fn register_macro(&mut self, token: &'ast Macro) {
         let mut tag = TokenTag::Macro;
+        eprintln!("In regular macro");
         if let Some(ident) = token.path.get_ident() {
-            if ident.to_string().as_str() == "macro_rules" {
-                tag = TokenTag::Keyword;
-            }
-        }
+            match ident.to_string().as_str() {
+                "macro_rules" => tag = TokenTag::Keyword,
+                "asm" => {
+                    eprintln!("{:?}", self.register_asm_macro(token.tokens.clone()));
+                }
+                _ => {}
+            };
+        };
         self.register_path(&token.path, Some(tag));
         self.register_macro_tag(&token.bang_token);
-        for token in token.tokens.clone() {
-            if let TokenTree::Literal(lit) = token {
-                if let Ok(_) = syn::parse_str::<LitStr>(&lit.to_string()) {
-                    self.register_litstr_tag(&lit);
+    }
+
+    pub(crate) fn register_asm_macro(&mut self, token: TokenStream) -> syn::Result<()> {
+        let args = syn::parse2::<AsmArgs>(token)?;
+        for arg in &args.args {
+            match arg {
+                AsmInput::Instruction(instruction) => {
+                    self.register_litstr_tag(instruction);
                 }
+                AsmInput::Options(options) => {
+                    self.register_asm_options(options);
+                }
+                AsmInput::RegOperand(reg_operand) => {
+                    self.register_asm_reg_operand(reg_operand);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn register_asm_options(&mut self, token: &AsmOptions) {
+        self.register_keyword_tag(&token.option_token);
+        for option in &token.options.idents {
+            self.register_keyword_tag(option);
+        }
+    }
+
+    pub(crate) fn register_asm_reg_operand(&mut self, token: &RegOperand) {
+        if let Some((param, _)) = &token.param_eq {
+            self.register_ident_tag(param);
+        }
+        self.register_asm_expr_operand(&token.expr);
+    }
+
+    pub(crate) fn register_asm_expr_operand(&mut self, token: &ExprOperand) {
+        match token {
+            ExprOperand::Constant(constant) => {
+                self.register_keyword_tag(&constant.const_token);
+                // self.register_expr(&constant.expr, None);
+            }
+            ExprOperand::Label(label) => {
+                self.register_keyword_tag(&label.label_token);
+            }
+            ExprOperand::Operand(op) => {
+                self.register_keyword_tag(&op.directive);
+                self.register_reg_spec(&op.reg);
+            }
+            ExprOperand::Symbol(sym) => {}
+        }
+    }
+
+    pub(crate) fn register_reg_spec(&mut self, token: &RegSpec) {
+        match token {
+            RegSpec::ExplicitReg(s) => {
+                self.register_litstr_tag(s);
+            }
+            RegSpec::RegClass(i) => {
+                self.register_ident_tag(i);
             }
         }
     }
