@@ -13,8 +13,9 @@ pub struct AsmArgs {
 
 impl Parse for AsmArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let inputs = input.parse_terminated(AsmInput::parse, Token![,])?;
-        Ok(AsmArgs { inputs })
+        Ok(Self {
+            inputs: input.parse_terminated(AsmInput::parse, Token![,])?,
+        })
     }
 }
 
@@ -62,25 +63,29 @@ impl Parse for AsmOptions {
             ));
         }
         let content;
-        let paren = syn::parenthesized!(content in input);
-        let options: IdentList = content.parse()?;
         Ok(Self {
             option_token,
-            paren,
-            options,
+            paren: syn::parenthesized!(content in input),
+            options: content.parse()?,
         })
     }
 }
 
 /// The reg in `in(reg)` or the 'rax' in `out("rax")`
 pub enum RegSpec {
-    RegClass(Ident),
     ExplicitReg(LitStr),
+    RegClass(Ident),
 }
 
 impl Parse for RegSpec {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
+        if input.peek(LitStr) {
+            return Ok(Self::ExplicitReg(input.parse()?));
+        } else if input.peek(Ident) {
+            return Ok(Self::RegClass(input.parse()?));
+        } else {
+            return Err(input.error("Expected LitStr or Ident for RegSpec"));
+        }
     }
 }
 
@@ -90,25 +95,28 @@ pub struct OperandDirective {
     pub paren: Paren,
     pub reg: RegSpec,
     pub expr: Expr,
+    pub dual: Option<(Token![=>], Expr)>,
 }
 
 impl Parse for OperandDirective {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
-    }
-}
-
-pub struct OperandDualDirective {
-    pub directive: Ident,
-    pub paren: Paren,
-    pub reg: RegSpec,
-    pub expr: Expr,
-    pub expr2: Option<(Token![=>], Expr)>,
-}
-
-impl Parse for OperandDualDirective {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
+        let reg_buf;
+        let directive = input.parse()?;
+        let paren = syn::parenthesized!(reg_buf in input);
+        let reg = reg_buf.parse()?;
+        let expr = input.parse()?;
+        let dual = input
+            .parse::<Token![=>]>()
+            .ok()
+            .map(|fat_arrow| input.parse().map(|expr2| (fat_arrow, expr2)))
+            .transpose()?;
+        Ok(Self {
+            directive,
+            paren,
+            reg,
+            expr,
+            dual,
+        })
     }
 }
 
@@ -117,21 +125,9 @@ pub struct ExprSym {
     pub expr: ExprPath,
 }
 
-impl Parse for ExprSym {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
-    }
-}
-
 pub struct ExprConstAsm {
     pub const_token: Ident,
     pub expr: Expr,
-}
-
-impl Parse for ExprConstAsm {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
-    }
 }
 
 pub struct Label {
@@ -140,25 +136,8 @@ pub struct Label {
     pub stmt: Stmt,
 }
 
-impl Parse for Label {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
-    }
-}
-
-pub enum Operand {
-    Directive(OperandDirective),
-    DualDirective(OperandDualDirective),
-}
-
-impl Parse for Operand {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        todo!()
-    }
-}
-
 pub enum ExprOperand {
-    Operand(Operand),
+    Operand(OperandDirective),
     Symbol(ExprSym),
     Constant(ExprConstAsm),
     Label(Label),
@@ -167,8 +146,10 @@ pub enum ExprOperand {
 impl Parse for ExprOperand {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         if input.peek2(Paren) {
-            return Ok(ExprOperand::Operand(input.parse::<Operand>()?));
-        } else if input.peek(token) {
+            return Ok(ExprOperand::Operand(input.parse::<OperandDirective>()?));
+        } else if input.peek(Brace) {
+            let content;
+            let brace = syn::braced!(content in input);
         }
     }
 }
