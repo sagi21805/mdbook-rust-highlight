@@ -1,4 +1,4 @@
-use crate::tokens::TokenTag;
+use crate::tokens::Tag;
 use mdbook_rust_highlight_derive::add_try_method;
 use syn::{Block, Local, LocalInit, Stmt, StmtMacro};
 
@@ -35,7 +35,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     pub(crate) fn register_local(&mut self, token: &'ast Local) {
         self.register_keyword_tag(&token.let_token);
-        self.register_pat(&token.pat, Some(TokenTag::Ident));
+        self.register_pat(&token.pat, Some(Tag::Variable));
         self.try_register_local_init(token.init.as_ref());
     }
 

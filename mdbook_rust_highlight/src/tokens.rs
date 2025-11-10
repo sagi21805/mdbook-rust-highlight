@@ -6,9 +6,9 @@ use strum_macros::AsRefStr;
 use syn::{Ident, PathSegment, spanned::Spanned};
 
 #[derive(AsRefStr, RegisterVariants, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
-pub enum TokenTag {
+pub enum Tag {
     Keyword,
-    Ident,
+    Variable,
     LitStr,
     LitNum,
     LitBool,
@@ -29,19 +29,19 @@ pub enum TokenTag {
     Item,
 }
 
-impl ToString for TokenTag {
+impl ToString for Tag {
     fn to_string(&self) -> String {
         match self {
             Self::Boring => String::from("<span class=\"boring\">"),
             Self::EndOfToken => String::from("</span>"),
-            _ => format!("<span class=\"hlrs-{}\">", self.as_ref()),
+            _ => format!("<span class=\"hlrs-{}\">", self.as_ref().to_lowercase()),
         }
     }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SpannedToken {
-    pub(crate) kind: Option<TokenTag>,
+    pub(crate) kind: Option<Tag>,
     pub(crate) start: usize,
     pub(crate) end: usize,
 }

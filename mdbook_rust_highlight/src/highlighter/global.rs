@@ -10,7 +10,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         if let StaticMutability::Mut(mut_token) = &token.mutability {
             self.register_keyword_tag(mut_token);
         }
-        self.register_ident_tag(&token.ident);
+        self.register_variable_tag(&token.ident);
         self.register_type(&token.ty);
         self.register_expr(&token.expr, None);
     }

@@ -21,14 +21,14 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     pub(crate) fn register_field(&mut self, token: &'ast Field) {
         self.register_visibility(&token.vis);
-        self.try_register_ident_tag(token.ident.as_ref());
+        self.try_register_variable_tag(token.ident.as_ref());
         self.register_type(&token.ty);
     }
 
     pub(crate) fn register_field_value(&mut self, token: &'ast FieldValue) {
         match &token.member {
             Member::Named(token) => {
-                self.register_ident_tag(token);
+                self.register_variable_tag(token);
             }
             Member::Unnamed(_) => {}
         }

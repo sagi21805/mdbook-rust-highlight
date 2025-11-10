@@ -2,7 +2,7 @@ use syn::{AttrStyle, Attribute, Meta, MetaNameValue};
 
 use crate::{
     highlighter::{RustHighlighter, macro_parsers::ident_list::IdentList},
-    tokens::TokenTag,
+    tokens::Tag,
 };
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
@@ -24,13 +24,13 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         match token.style {
             AttrStyle::Outer => match &token.meta {
                 Meta::Path(path) => {
-                    self.register_path(path, Some(TokenTag::Const));
+                    self.register_path(path, Some(Tag::Const));
                 }
                 Meta::List(list) => {
                     if list.path.get_ident().unwrap().to_string() == "unsafe" {
                         self.register_keyword_tag(&list.path);
                     } else {
-                        self.register_path(&list.path, Some(TokenTag::Const));
+                        self.register_path(&list.path, Some(Tag::Const));
                     }
                     let ident_list = syn::parse2::<IdentList>(list.tokens.clone());
                     match ident_list {
@@ -44,14 +44,14 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                     let name_val = syn::parse2::<MetaNameValue>(list.tokens.clone());
                     match name_val {
                         Ok(name_val) => {
-                            self.register_ident_tag(&name_val.path.get_ident().unwrap());
+                            self.register_variable_tag(&name_val.path.get_ident().unwrap());
                             self.register_litstr_tag(&name_val.value);
                         }
                         _ => {}
                     }
                 }
                 Meta::NameValue(name_val) => {
-                    self.register_path(&name_val.path, Some(TokenTag::Ident));
+                    self.register_path(&name_val.path, Some(Tag::Variable));
                     self.register_expr(&name_val.value, None);
                 }
             },
@@ -59,7 +59,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 self.register_attribute_tag(&not);
                 match &token.meta {
                     Meta::Path(path) => {
-                        self.register_path(path, Some(TokenTag::Const));
+                        self.register_path(path, Some(Tag::Const));
                     }
                     _ => {}
                 }

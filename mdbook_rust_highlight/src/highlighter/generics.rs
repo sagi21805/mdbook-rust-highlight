@@ -132,7 +132,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_capture_param(&mut self, token: &'ast CapturedParam) {
         match token {
             CapturedParam::Ident(token) => {
-                self.register_ident_tag(token);
+                self.register_variable_tag(token);
             }
             CapturedParam::Lifetime(token) => {
                 self.register_lifetime_tag(token);

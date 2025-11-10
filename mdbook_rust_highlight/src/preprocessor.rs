@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::{highlighter::RustHighlighter, tokens::TokenTag};
+use crate::{highlighter::RustHighlighter, tokens::Tag};
 use mdbook::{
     BookItem,
     book::{Book, Chapter},
@@ -14,7 +14,7 @@ pub struct RustHighlighterPreprocessor;
 const HLRS_CODEBLOCK_REGEX: &str = r"```rust(?:,?([^\n]+))?\n([\s\S]*?)\n?```";
 const RUST_ICON_URL: &str = "@https://www.rust-lang.org/static/images/rust-logo-blk.svg";
 
-pub type IdentMap<'a> = &'a mut HashMap<&'static str, TokenTag>;
+pub type IdentMap<'a> = &'a mut HashMap<&'static str, Tag>;
 
 impl Preprocessor for RustHighlighterPreprocessor {
     fn name(&self) -> &str {
@@ -23,18 +23,18 @@ impl Preprocessor for RustHighlighterPreprocessor {
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
         let ident_map: IdentMap = &mut HashMap::new();
         // Maybe turn into an initialize function.
-        ident_map.insert("Ok", TokenTag::Enum);
-        ident_map.insert("Some", TokenTag::Enum);
-        ident_map.insert("None", TokenTag::Enum);
-        ident_map.insert("Err", TokenTag::Enum);
-        ident_map.insert("self", TokenTag::SelfToken);
-        ident_map.insert("Self", TokenTag::SelfToken);
-        ident_map.insert("asm", TokenTag::Macro);
-        ident_map.insert("DISK_NUMBER_OFFSET", TokenTag::LitNum);
-        ident_map.insert("DiskAddressPacket", TokenTag::Type);
-        ident_map.insert("size_of", TokenTag::Enum);
-        ident_map.insert("PAGE_DIRECTORY_ENTRIES", TokenTag::LitNum);
-        ident_map.insert("Ring0", TokenTag::Enum);
+        ident_map.insert("Ok", Tag::Enum);
+        ident_map.insert("Some", Tag::Enum);
+        ident_map.insert("None", Tag::Enum);
+        ident_map.insert("Err", Tag::Enum);
+        ident_map.insert("self", Tag::SelfToken);
+        ident_map.insert("Self", Tag::SelfToken);
+        ident_map.insert("asm", Tag::Macro);
+        ident_map.insert("DISK_NUMBER_OFFSET", Tag::LitNum);
+        ident_map.insert("DiskAddressPacket", Tag::Type);
+        ident_map.insert("size_of", Tag::Enum);
+        ident_map.insert("PAGE_DIRECTORY_ENTRIES", Tag::LitNum);
+        ident_map.insert("Ring0", Tag::Enum);
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
         book.for_each_mut(|item| {

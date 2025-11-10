@@ -5,10 +5,10 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::{highlighter::RustHighlighter, tokens::TokenTag};
+use crate::{highlighter::RustHighlighter, tokens::Tag};
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_expr(&mut self, token: &'ast Expr, identifier: Option<TokenTag>) {
+    pub(crate) fn register_expr(&mut self, token: &'ast Expr, identifier: Option<Tag>) {
         match token {
             Expr::Lit(token) => {
                 self.register_lit_expr(token);
@@ -86,7 +86,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Expr::Assign(token) => {
                 self.register_assign_expr(token);
             }
-            _ => self.register_tag(token, Some(TokenTag::Expr)),
+            _ => self.register_tag(token, Some(Tag::Expr)),
         }
     }
 
@@ -106,7 +106,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     pub(crate) fn register_struct_expr(&mut self, token: &'ast ExprStruct) {
         self.try_register_qself(token.qself.as_ref());
-        self.register_path(&token.path, Some(TokenTag::Type));
+        self.register_path(&token.path, Some(Tag::Type));
         for field in &token.fields {
             self.register_field_value(field);
         }
@@ -134,7 +134,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_for_loop_expr(
         &mut self,
         token: &'ast ExprForLoop,
-        identifier: Option<TokenTag>,
+        identifier: Option<Tag>,
     ) {
         self.register_attributes(&token.attrs);
         self.register_keyword_tag(&token.for_token);
@@ -153,7 +153,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_method_call_expr(
         &mut self,
         token: &'ast ExprMethodCall,
-        identifier: Option<TokenTag>,
+        identifier: Option<Tag>,
     ) {
         self.register_expr(&token.receiver, identifier);
         self.register_function_tag(&token.method);
@@ -163,11 +163,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     /// Identifier for the last token on the path
-    pub(crate) fn register_path_expr(
-        &mut self,
-        token: &'ast ExprPath,
-        identifier: Option<TokenTag>,
-    ) {
+    pub(crate) fn register_path_expr(&mut self, token: &'ast ExprPath, identifier: Option<Tag>) {
         self.try_register_qself(token.qself.as_ref());
         self.register_path(&token.path, identifier);
     }
@@ -175,17 +171,13 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_reference_expr(
         &mut self,
         token: &'ast ExprReference,
-        identifier: Option<TokenTag>,
+        identifier: Option<Tag>,
     ) {
         self.try_register_keyword_tag(token.mutability.as_ref());
         self.register_expr(&token.expr, identifier);
     }
 
-    pub(crate) fn register_unary_expr(
-        &mut self,
-        token: &'ast ExprUnary,
-        identifier: Option<TokenTag>,
-    ) {
+    pub(crate) fn register_unary_expr(&mut self, token: &'ast ExprUnary, identifier: Option<Tag>) {
         self.register_expr(&token.expr, identifier);
     }
 
@@ -195,7 +187,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.register_expr(&token.right, None);
     }
 
-    pub(crate) fn register_try_expr(&mut self, token: &'ast ExprTry, identifier: Option<TokenTag>) {
+    pub(crate) fn register_try_expr(&mut self, token: &'ast ExprTry, identifier: Option<Tag>) {
         self.register_expr(&token.expr, identifier);
     }
 
@@ -211,7 +203,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     pub(crate) fn register_call_expr(&mut self, token: &'ast ExprCall) {
-        self.register_expr(&token.func, Some(TokenTag::Function));
+        self.register_expr(&token.func, Some(Tag::Function));
         let token_position = token.span().byte_range();
         // TODO Logic may be broken
         for pos in token_position.start..token_position.end {
@@ -235,34 +227,22 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_parentheses_expr(
         &mut self,
         token: &'ast ExprParen,
-        identifier: Option<TokenTag>,
+        identifier: Option<Tag>,
     ) {
         self.register_expr(&token.expr, identifier);
     }
 
-    pub(crate) fn register_cast_expr(
-        &mut self,
-        token: &'ast ExprCast,
-        identifier: Option<TokenTag>,
-    ) {
+    pub(crate) fn register_cast_expr(&mut self, token: &'ast ExprCast, identifier: Option<Tag>) {
         self.register_expr(&token.expr, identifier);
         self.register_keyword_tag(&token.as_token);
         self.register_type(&token.ty);
     }
-    pub(crate) fn register_field_expr(
-        &mut self,
-        token: &'ast ExprField,
-        identifier: Option<TokenTag>,
-    ) {
+    pub(crate) fn register_field_expr(&mut self, token: &'ast ExprField, identifier: Option<Tag>) {
         self.register_expr(&token.base, identifier);
         self.register_member(&token.member);
     }
 
-    pub(crate) fn register_match_expr(
-        &mut self,
-        token: &'ast ExprMatch,
-        identifier: Option<TokenTag>,
-    ) {
+    pub(crate) fn register_match_expr(&mut self, token: &'ast ExprMatch, identifier: Option<Tag>) {
         self.register_keyword_tag(&token.match_token);
         self.register_expr(&token.expr, identifier);
         for arm in &token.arms {
@@ -288,7 +268,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_member(&mut self, token: &'ast Member) {
         match token {
             Member::Named(token) => {
-                self.register_ident_tag(token);
+                self.register_variable_tag(token);
             }
             Member::Unnamed(token) => {
                 self.register_litnum_tag(token);

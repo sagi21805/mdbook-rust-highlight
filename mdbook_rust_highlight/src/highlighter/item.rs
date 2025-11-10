@@ -9,7 +9,7 @@ use crate::{
         RustHighlighter,
         macro_parsers::asm::{AsmArgs, AsmInput, AsmOptions, ExprOperand, RegOperand, RegSpec},
     },
-    tokens::TokenTag,
+    tokens::Tag,
 };
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
@@ -90,7 +90,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.register_attributes(&token.attrs);
         self.register_visibility(&token.vis);
         self.register_keyword_tag(&token.enum_token);
-        self.register_tag(&token.ident, Some(TokenTag::Type));
+        self.register_tag(&token.ident, Some(Tag::Type));
         // TODO REGISTER GENERICS AND FIELDS
         for variant in &token.variants {
             self.register_enum_tag(&variant.ident);
@@ -131,17 +131,17 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     pub(crate) fn register_macro_item(&mut self, token: &'ast ItemMacro) {
         if let Some(name) = token.ident.as_ref() {
-            self.register_ident(name.into(), Some(TokenTag::Macro));
+            self.register_ident(name.into(), Some(Tag::Macro));
         }
         self.register_macro(&token.mac);
     }
 
     pub(crate) fn register_macro(&mut self, token: &'ast Macro) {
-        let mut tag = TokenTag::Macro;
+        let mut tag = Tag::Macro;
         eprintln!("In regular macro");
         if let Some(ident) = token.path.get_ident() {
             match ident.to_string().as_str() {
-                "macro_rules" => tag = TokenTag::Keyword,
+                "macro_rules" => tag = Tag::Keyword,
                 "asm" => {
                     eprintln!("{:?}", self.register_asm_macro(token.tokens.clone()));
                 }
@@ -179,7 +179,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     pub(crate) fn register_asm_reg_operand(&mut self, token: &RegOperand) {
         if let Some((param, _)) = &token.param_eq {
-            self.register_ident_tag(param);
+            self.register_variable_tag(param);
         }
         self.register_asm_expr_operand(&token.expr);
     }
@@ -207,7 +207,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 self.register_litstr_tag(s);
             }
             RegSpec::RegClass(i) => {
-                self.register_ident_tag(i);
+                self.register_variable_tag(i);
             }
         }
     }
@@ -217,7 +217,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.try_register_keyword_tag(token.unsafety.as_ref());
         self.register_keyword_tag(&token.impl_token);
         if let Some((_, trait_name, for_token)) = &token.trait_ {
-            self.register_path(trait_name, Some(TokenTag::Type));
+            self.register_path(trait_name, Some(Tag::Type));
             self.register_keyword_tag(for_token);
         }
         self.register_type(&token.self_ty);

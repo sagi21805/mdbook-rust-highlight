@@ -1,6 +1,6 @@
 use syn::{ReturnType, Type, TypeImplTrait, TypePath, TypePtr, TypeReference, TypeTuple};
 
-use crate::{highlighter::RustHighlighter, tokens::TokenTag};
+use crate::{highlighter::RustHighlighter, tokens::Tag};
 
 impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     pub(crate) fn register_type(&mut self, token: &'ast Type) {
@@ -43,7 +43,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
 
     pub(crate) fn register_path_type(&mut self, token: &'ast TypePath) {
         self.try_register_qself(token.qself.as_ref());
-        self.register_path(&token.path, Some(TokenTag::Type));
+        self.register_path(&token.path, Some(Tag::Type));
     }
 
     pub(crate) fn register_tuple_type(&mut self, token: &'ast TypeTuple) {
