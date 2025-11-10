@@ -36,7 +36,7 @@ pub fn add_try_method(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #vis #sig #block
 
         #[allow(dead_code)]
-        pub(crate) fn #try_ident(&mut self, token: Option<&'ast #arg_ty>) {
+        pub(crate) fn #try_ident(&mut self, token: Option<& #arg_ty>) {
             if let Some(token) = token {
                 self.#fn_name(token);
             }
@@ -89,7 +89,7 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
     });
 
     let expanded = quote! {
-        impl<'a, 'ast> RustHighlighter<'a, 'ast> {
+        impl<'a> RustHighlighter<'a> {
             #(#methods)*
         }
     };

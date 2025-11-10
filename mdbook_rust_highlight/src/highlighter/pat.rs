@@ -2,8 +2,8 @@ use syn::{Pat, PatIdent, PatOr, PatReference, PatTuple, PatTupleStruct, PatType}
 
 use crate::{highlighter::RustHighlighter, tokens::Tag};
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_pat(&mut self, token: &'ast Pat, identifier: Option<Tag>) {
+impl<'a> RustHighlighter<'a> {
+    pub(crate) fn register_pat(&mut self, token: &Pat, identifier: Option<Tag>) {
         match token {
             Pat::Ident(token) => {
                 self.register_ident_pat(token);
@@ -38,33 +38,29 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_ident_pat(&mut self, token: &'ast PatIdent) {
+    pub(crate) fn register_ident_pat(&mut self, token: &PatIdent) {
         self.try_register_keyword_tag(token.by_ref.as_ref());
         self.try_register_keyword_tag(token.mutability.as_ref());
         self.register_variable_tag(&token.ident);
     }
 
-    pub(crate) fn register_reference_pat(
-        &mut self,
-        token: &'ast PatReference,
-        identifier: Option<Tag>,
-    ) {
+    pub(crate) fn register_reference_pat(&mut self, token: &PatReference, identifier: Option<Tag>) {
         self.try_register_keyword_tag(token.mutability.as_ref());
         self.register_pat(&token.pat, identifier);
     }
 
-    pub(crate) fn register_type_pat(&mut self, token: &'ast PatType) {
+    pub(crate) fn register_type_pat(&mut self, token: &PatType) {
         self.register_pat(&token.pat, Some(Tag::Variable));
         self.register_type(&token.ty);
     }
 
-    pub(crate) fn register_tuple_pat(&mut self, token: &'ast PatTuple) {
+    pub(crate) fn register_tuple_pat(&mut self, token: &PatTuple) {
         for arg in &token.elems {
             self.register_pat(arg, None);
         }
     }
 
-    pub(crate) fn register_tuple_struct_pat(&mut self, token: &'ast PatTupleStruct) {
+    pub(crate) fn register_tuple_struct_pat(&mut self, token: &PatTupleStruct) {
         self.try_register_qself(token.qself.as_ref());
         self.register_path(&token.path, Some(Tag::Enum));
         for arg in &token.elems {
@@ -72,7 +68,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_or_pat(&mut self, token: &'ast PatOr) {
+    pub(crate) fn register_or_pat(&mut self, token: &PatOr) {
         for case in &token.cases {
             self.register_pat(case, None);
         }

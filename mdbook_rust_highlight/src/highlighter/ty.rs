@@ -2,8 +2,8 @@ use syn::{ReturnType, Type, TypeImplTrait, TypePath, TypePtr, TypeReference, Typ
 
 use crate::{highlighter::RustHighlighter, tokens::Tag};
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_type(&mut self, token: &'ast Type) {
+impl<'a> RustHighlighter<'a> {
+    pub(crate) fn register_type(&mut self, token: &Type) {
         match token {
             Type::Reference(token) => {
                 self.register_reference_type(token);
@@ -28,38 +28,38 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_ptr_type(&mut self, token: &'ast TypePtr) {
+    pub(crate) fn register_ptr_type(&mut self, token: &TypePtr) {
         self.register_keyword_tag(&token.star_token);
         self.try_register_keyword_tag(token.const_token.as_ref());
         self.try_register_keyword_tag(token.mutability.as_ref());
         self.register_type(&token.elem);
     }
 
-    pub(crate) fn register_reference_type(&mut self, token: &'ast TypeReference) {
+    pub(crate) fn register_reference_type(&mut self, token: &TypeReference) {
         self.try_register_lifetime_tag(token.lifetime.as_ref());
         self.try_register_keyword_tag(token.mutability.as_ref());
         self.register_type(&token.elem);
     }
 
-    pub(crate) fn register_path_type(&mut self, token: &'ast TypePath) {
+    pub(crate) fn register_path_type(&mut self, token: &TypePath) {
         self.try_register_qself(token.qself.as_ref());
         self.register_path(&token.path, Some(Tag::Type));
     }
 
-    pub(crate) fn register_tuple_type(&mut self, token: &'ast TypeTuple) {
+    pub(crate) fn register_tuple_type(&mut self, token: &TypeTuple) {
         for arg in &token.elems {
             self.register_type(arg);
         }
     }
 
-    pub(crate) fn register_impl_trait_type(&mut self, token: &'ast TypeImplTrait) {
+    pub(crate) fn register_impl_trait_type(&mut self, token: &TypeImplTrait) {
         self.register_keyword_tag(&token.impl_token);
         for bound in &token.bounds {
             self.register_bound(bound);
         }
     }
 
-    pub(crate) fn register_return_type(&mut self, token: &'ast ReturnType) {
+    pub(crate) fn register_return_type(&mut self, token: &ReturnType) {
         match token {
             ReturnType::Default => {}
             ReturnType::Type(_, token) => {

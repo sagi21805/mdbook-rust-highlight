@@ -5,14 +5,14 @@ use crate::{
     tokens::Tag,
 };
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_attributes(&mut self, token: &'ast Vec<Attribute>) {
+impl<'a> RustHighlighter<'a> {
+    pub(crate) fn register_attributes(&mut self, token: &Vec<Attribute>) {
         for attr in token {
             self.register_attribute(attr);
         }
     }
 
-    pub(crate) fn register_attribute(&mut self, token: &'ast Attribute) {
+    pub(crate) fn register_attribute(&mut self, token: &Attribute) {
         // Distinguish between a comment or docs to an attribute.
         if token.pound_token.span.byte_range().len() == 1 {
             self.register_attribute_tag(&token.pound_token);

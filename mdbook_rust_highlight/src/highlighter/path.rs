@@ -2,8 +2,8 @@ use crate::{highlighter::RustHighlighter, tokens::Tag};
 use mdbook_rust_highlight_derive::add_try_method;
 use syn::{Path, PathArguments, PathSegment, QSelf};
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_path_argument(&mut self, token: &'ast PathArguments) {
+impl<'a> RustHighlighter<'a> {
+    pub(crate) fn register_path_argument(&mut self, token: &PathArguments) {
         match token {
             PathArguments::Parenthesized(token) => {
                 self.register_parenthesized_arg(token);
@@ -15,11 +15,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_path_segment(
-        &mut self,
-        token: &'ast PathSegment,
-        tag: Option<Tag>,
-    ) {
+    pub(crate) fn register_path_segment(&mut self, token: &PathSegment, tag: Option<Tag>) {
         self.register_path_argument(&token.arguments);
 
         if let None = tag {
@@ -30,7 +26,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     #[add_try_method]
-    pub(crate) fn register_qself(&mut self, token: &'ast QSelf) {
+    pub(crate) fn register_qself(&mut self, token: &QSelf) {
         self.register_type(&token.ty);
         self.try_register_keyword_tag(token.as_token.as_ref());
     }
@@ -43,7 +39,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     /// - `last:` - Optional tag to put for the last item of the path.
     ///
     /// If last tag is not known, put need identification
-    pub(crate) fn register_path(&mut self, token: &'ast Path, last_tag: Option<Tag>) {
+    pub(crate) fn register_path(&mut self, token: &Path, last_tag: Option<Tag>) {
         let mut segment_iter = token.segments.iter().rev();
         let last_segment = segment_iter.next();
         for segment in segment_iter {

@@ -3,6 +3,7 @@ use crate::{
     preprocessor::IdentMap,
     tokens::{PathToken, SpannedToken, Tag},
 };
+use proc_macro2::Span;
 use regex::Regex;
 use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
@@ -22,17 +23,17 @@ pub mod structure;
 pub mod ty;
 pub mod visit;
 
-pub trait Registerable: syn::spanned::Spanned + Sized {
+pub trait Register: syn::spanned::Spanned + Sized {
     fn register(&self, h: &mut RustHighlighter);
 }
-pub struct RustHighlighter<'a, 'ast> {
+pub struct RustHighlighter<'a> {
     token_set: BTreeSet<SpannedToken>,
-    unidentified: HashMap<usize, PathToken<'ast>>,
+    unidentified: HashMap<Span, &'static str>,
     ident_map: IdentMap<'a>,
 }
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    fn highlight(&mut self, code: &'ast str) -> String {
+impl<'a> RustHighlighter<'a> {
+    fn highlight(&mut self, code: &str) -> String {
         let code = self.register_boring(code);
 
         let mut output = Rope::from_str(&code);
@@ -46,7 +47,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         output.to_string()
     }
 
-    fn register(&mut self, token: &impl Registerable) {
+    fn register(&mut self, token: &impl Register) {
         token.register(self);
     }
 
@@ -64,7 +65,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
+impl<'a> RustHighlighter<'a> {
     pub(crate) fn write_tokens(&mut self, output: &mut Rope) {
         let mut tok_offset: usize = 0;
         let mut set_iterator = self.token_set.iter();
@@ -126,7 +127,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_unidentified(&mut self, token: PathToken<'ast>) {
+    pub(crate) fn register_unidentified(&mut self, token: PathToken) {
         self.register(token.ident());
         self.unidentified
             .insert(token.span().byte_range().start, token);
@@ -163,7 +164,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
+impl<'a> RustHighlighter<'a> {
     fn new(ident_map: IdentMap<'a>) -> Self {
         Self {
             token_set: BTreeSet::new(),

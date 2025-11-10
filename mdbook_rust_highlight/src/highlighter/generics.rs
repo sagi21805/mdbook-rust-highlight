@@ -9,8 +9,8 @@ use syn::{
 
 use crate::highlighter::RustHighlighter;
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_generics(&mut self, token: &'ast Generics) {
+impl<'a> RustHighlighter<'a> {
+    pub(crate) fn register_generics(&mut self, token: &Generics) {
         for param in &token.params {
             self.register_generic_param(param);
         }
@@ -19,7 +19,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_generic_param(&mut self, token: &'ast GenericParam) {
+    pub(crate) fn register_generic_param(&mut self, token: &GenericParam) {
         match token {
             GenericParam::Const(token) => {
                 self.register_const_param(token);
@@ -33,7 +33,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_lifetime_param(&mut self, token: &'ast LifetimeParam) {
+    pub(crate) fn register_lifetime_param(&mut self, token: &LifetimeParam) {
         self.register_attributes(&token.attrs);
         self.register_lifetime_tag(&token.lifetime);
         for lifetime in &token.bounds {
@@ -41,7 +41,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_type_param(&mut self, token: &'ast TypeParam) {
+    pub(crate) fn register_type_param(&mut self, token: &TypeParam) {
         self.register_attributes(&token.attrs);
         self.register_type_tag(&token.ident);
         for bound in &token.bounds {
@@ -52,7 +52,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_const_param(&mut self, token: &'ast ConstParam) {
+    pub(crate) fn register_const_param(&mut self, token: &ConstParam) {
         self.register_attributes(&token.attrs);
         self.register_keyword_tag(&token.const_token);
         self.register_const_tag(&token.ident);
@@ -62,14 +62,14 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_where_clause(&mut self, token: &'ast WhereClause) {
+    pub(crate) fn register_where_clause(&mut self, token: &WhereClause) {
         self.register_keyword_tag(&token.where_token);
         for item in &token.predicates {
             self.register_where_predicate(item);
         }
     }
 
-    pub(crate) fn register_predicate_lifetime(&mut self, token: &'ast PredicateLifetime) {
+    pub(crate) fn register_predicate_lifetime(&mut self, token: &PredicateLifetime) {
         self.register_lifetime_tag(&token.lifetime);
         for lifetime in &token.bounds {
             self.register_lifetime_tag(lifetime);
@@ -77,21 +77,21 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     #[add_try_method]
-    pub(crate) fn register_bound_lifetimes(&mut self, token: &'ast BoundLifetimes) {
+    pub(crate) fn register_bound_lifetimes(&mut self, token: &BoundLifetimes) {
         self.register_keyword_tag(&token.for_token);
         for lifetime in &token.lifetimes {
             self.register_generic_param(lifetime);
         }
     }
 
-    pub(crate) fn register_percise_capture(&mut self, token: &'ast PreciseCapture) {
+    pub(crate) fn register_percise_capture(&mut self, token: &PreciseCapture) {
         self.register_keyword_tag(&token.use_token);
         for param in &token.params {
             self.register_capture_param(param);
         }
     }
 
-    pub(crate) fn register_type_param_bound(&mut self, token: &'ast TypeParamBound) {
+    pub(crate) fn register_type_param_bound(&mut self, token: &TypeParamBound) {
         match token {
             TypeParamBound::Lifetime(token) => {
                 self.register_lifetime_tag(token);
@@ -109,7 +109,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_predicate_type(&mut self, token: &'ast PredicateType) {
+    pub(crate) fn register_predicate_type(&mut self, token: &PredicateType) {
         self.try_register_bound_lifetimes(token.lifetimes.as_ref());
         self.register_type(&token.bounded_ty);
         for bound in &token.bounds {
@@ -117,7 +117,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_where_predicate(&mut self, token: &'ast WherePredicate) {
+    pub(crate) fn register_where_predicate(&mut self, token: &WherePredicate) {
         match token {
             WherePredicate::Lifetime(token) => {
                 self.register_predicate_lifetime(token);
@@ -129,7 +129,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_capture_param(&mut self, token: &'ast CapturedParam) {
+    pub(crate) fn register_capture_param(&mut self, token: &CapturedParam) {
         match token {
             CapturedParam::Ident(token) => {
                 self.register_variable_tag(token);
@@ -140,16 +140,16 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             _ => {}
         }
     }
-    pub(crate) fn register_trait_bound(&mut self, token: &'ast TraitBound) {}
+    pub(crate) fn register_trait_bound(&mut self, token: &TraitBound) {}
 
-    pub(crate) fn register_precise_capture(&mut self, token: &'ast PreciseCapture) {
+    pub(crate) fn register_precise_capture(&mut self, token: &PreciseCapture) {
         self.register_keyword_tag(&token.use_token);
         for param in &token.params {
             self.register_capture_param(param);
         }
     }
 
-    pub(crate) fn register_bound(&mut self, token: &'ast TypeParamBound) {
+    pub(crate) fn register_bound(&mut self, token: &TypeParamBound) {
         match token {
             TypeParamBound::Lifetime(token) => {
                 self.register_lifetime_tag(token);
@@ -164,7 +164,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_generic_argument(&mut self, token: &'ast GenericArgument) {
+    pub(crate) fn register_generic_argument(&mut self, token: &GenericArgument) {
         match token {
             GenericArgument::Type(token) => {
                 self.register_type(token);
@@ -176,20 +176,14 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_parenthesized_arg(
-        &mut self,
-        token: &'ast ParenthesizedGenericArguments,
-    ) {
+    pub(crate) fn register_parenthesized_arg(&mut self, token: &ParenthesizedGenericArguments) {
         for input in &token.inputs {
             self.register_type(input);
         }
         self.register_return_type(&token.output);
     }
 
-    pub(crate) fn register_angle_brackets_arg(
-        &mut self,
-        token: &'ast AngleBracketedGenericArguments,
-    ) {
+    pub(crate) fn register_angle_brackets_arg(&mut self, token: &AngleBracketedGenericArguments) {
         for arg in &token.args {
             self.register_generic_argument(arg);
         }

@@ -63,37 +63,3 @@ impl Ord for SpannedToken {
             .then(Ordering::Greater)
     }
 }
-
-#[derive(Clone)]
-pub enum PathToken<'ast> {
-    Segment(&'ast PathSegment),
-    Ident(&'ast Ident),
-}
-
-impl<'ast> PathToken<'ast> {
-    pub(crate) fn ident(&self) -> &'ast Ident {
-        match self {
-            Self::Ident(token) => token,
-            Self::Segment(token) => &token.ident,
-        }
-    }
-
-    pub(crate) fn span(&self) -> proc_macro2::Span {
-        match self {
-            Self::Ident(token) => token.span(),
-            Self::Segment(token) => token.span(),
-        }
-    }
-}
-
-impl<'ast> From<&'ast PathSegment> for PathToken<'ast> {
-    fn from(value: &'ast PathSegment) -> Self {
-        PathToken::Segment(value)
-    }
-}
-
-impl<'ast> From<&'ast Ident> for PathToken<'ast> {
-    fn from(value: &'ast Ident) -> Self {
-        PathToken::Ident(value)
-    }
-}

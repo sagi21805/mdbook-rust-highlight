@@ -1,19 +1,19 @@
 use proc_macro2::{TokenStream, TokenTree};
 use syn::{
     FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, LitStr,
-    Macro, Signature, UseTree, Visibility,
+    Macro, PathSegment, Signature, UseTree, Visibility,
 };
 
 use crate::{
     highlighter::{
-        RustHighlighter,
+        Register, RustHighlighter,
         macro_parsers::asm::{AsmArgs, AsmInput, AsmOptions, ExprOperand, RegOperand, RegSpec},
     },
     tokens::Tag,
 };
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_item(&mut self, token: &'ast Item) {
+impl<'a> RustHighlighter<'a> {
+    pub(crate) fn register_item(&mut self, token: &Item) {
         match token {
             Item::Fn(token) => {
                 self.register_function_item(token);
@@ -43,7 +43,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_struct_item(&mut self, token: &'ast ItemStruct) {
+    pub(crate) fn register_struct_item(&mut self, token: &ItemStruct) {
         self.register_attributes(&token.attrs);
         self.register_visibility(&token.vis);
         self.register_keyword_tag(&token.struct_token);
@@ -51,14 +51,9 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.register_struct_fields(&token.fields);
     }
 
-    pub(crate) fn register_function_item(&mut self, token: &'ast ItemFn) {
-        self.register_attributes(&token.attrs);
-        self.register_visibility(&token.vis);
-        self.register_function_sig(&token.sig);
-        self.register_block(&token.block);
-    }
+    pub(crate) fn register_function_item(&mut self, token: &ItemFn) {}
 
-    pub(crate) fn register_function_sig(&mut self, token: &'ast Signature) {
+    pub(crate) fn register_function_sig(&mut self, token: &Signature) {
         self.try_register_keyword_tag(token.constness.as_ref());
         self.try_register_keyword_tag(token.asyncness.as_ref());
         self.try_register_keyword_tag(token.unsafety.as_ref());
@@ -86,7 +81,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.register_return_type(&token.output);
     }
 
-    pub(crate) fn register_enum_item(&mut self, token: &'ast ItemEnum) {
+    pub(crate) fn register_enum_item(&mut self, token: &ItemEnum) {
         self.register_attributes(&token.attrs);
         self.register_visibility(&token.vis);
         self.register_keyword_tag(&token.enum_token);
@@ -100,13 +95,13 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_use_item(&mut self, token: &'ast ItemUse) {
+    pub(crate) fn register_use_item(&mut self, token: &ItemUse) {
         self.register_visibility(&token.vis);
         self.register_keyword_tag(&token.use_token);
         self.register_use_tree(&token.tree);
     }
 
-    pub(crate) fn register_use_tree(&mut self, token: &'ast UseTree) {
+    pub(crate) fn register_use_tree(&mut self, token: &UseTree) {
         match token {
             UseTree::Glob(_) => {}
             UseTree::Group(token) => {
@@ -129,14 +124,14 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_macro_item(&mut self, token: &'ast ItemMacro) {
+    pub(crate) fn register_macro_item(&mut self, token: &ItemMacro) {
         if let Some(name) = token.ident.as_ref() {
             self.register_ident(name.into(), Some(Tag::Macro));
         }
         self.register_macro(&token.mac);
     }
 
-    pub(crate) fn register_macro(&mut self, token: &'ast Macro) {
+    pub(crate) fn register_macro(&mut self, token: &Macro) {
         let mut tag = Tag::Macro;
         eprintln!("In regular macro");
         if let Some(ident) = token.path.get_ident() {
@@ -213,7 +208,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     // TODO COMPLETE
-    pub(crate) fn register_impl_item(&mut self, token: &'ast ItemImpl) {
+    pub(crate) fn register_impl_item(&mut self, token: &ItemImpl) {
         self.try_register_keyword_tag(token.unsafety.as_ref());
         self.register_keyword_tag(&token.impl_token);
         if let Some((_, trait_name, for_token)) = &token.trait_ {
@@ -226,7 +221,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_item_impl(&mut self, token: &'ast ImplItem) {
+    pub(crate) fn register_item_impl(&mut self, token: &ImplItem) {
         match token {
             ImplItem::Const(token) => {}
             ImplItem::Fn(token) => {
@@ -244,10 +239,19 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_visibility(&mut self, token: &'ast Visibility) {
+    pub(crate) fn register_visibility(&mut self, token: &Visibility) {
         match token {
             Visibility::Inherited => {}
             _ => self.register_keyword_tag(token),
         }
+    }
+}
+
+impl Register for ItemFn {
+    fn register(&self, h: &mut RustHighlighter) {
+        h.register_attributes(&self.attrs);
+        h.register_visibility(&self.vis);
+        h.register_function_sig(&self.sig);
+        h.register_block(&self.block);
     }
 }

@@ -7,8 +7,8 @@ use syn::{
 
 use crate::{highlighter::RustHighlighter, tokens::Tag};
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_expr(&mut self, token: &'ast Expr, identifier: Option<Tag>) {
+impl<'a> RustHighlighter<'a> {
+    pub(crate) fn register_expr(&mut self, token: &Expr, identifier: Option<Tag>) {
         match token {
             Expr::Lit(token) => {
                 self.register_lit_expr(token);
@@ -86,17 +86,16 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
             Expr::Assign(token) => {
                 self.register_assign_expr(token);
             }
-            _ => self.register_tag(token, Some(Tag::Expr)),
         }
     }
 
-    pub(crate) fn register_assign_expr(&mut self, token: &'ast ExprAssign) {
+    pub(crate) fn register_assign_expr(&mut self, token: &ExprAssign) {
         self.register_attributes(&token.attrs);
         self.register_expr(&token.left, None);
         self.register_expr(&token.right, None);
     }
 
-    pub(crate) fn register_return_expr(&mut self, token: &'ast ExprReturn) {
+    pub(crate) fn register_return_expr(&mut self, token: &ExprReturn) {
         self.register_attributes(&token.attrs);
         self.register_keyword_tag(&token.return_token);
         if let Some(expr) = token.expr.as_ref().map(|v| &**v) {
@@ -104,7 +103,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_struct_expr(&mut self, token: &'ast ExprStruct) {
+    pub(crate) fn register_struct_expr(&mut self, token: &ExprStruct) {
         self.try_register_qself(token.qself.as_ref());
         self.register_path(&token.path, Some(Tag::Type));
         for field in &token.fields {
@@ -115,7 +114,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_lit_expr(&mut self, token: &'ast ExprLit) {
+    pub(crate) fn register_lit_expr(&mut self, token: &ExprLit) {
         self.register_attributes(&token.attrs);
         match &token.lit {
             Lit::Int(_) | Lit::Float(_) => {
@@ -131,11 +130,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_for_loop_expr(
-        &mut self,
-        token: &'ast ExprForLoop,
-        identifier: Option<Tag>,
-    ) {
+    pub(crate) fn register_for_loop_expr(&mut self, token: &ExprForLoop, identifier: Option<Tag>) {
         self.register_attributes(&token.attrs);
         self.register_keyword_tag(&token.for_token);
         self.register_pat(&token.pat, None);
@@ -144,7 +139,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.register_block(&token.body);
     }
 
-    pub(crate) fn register_unsafe_expr(&mut self, token: &'ast ExprUnsafe) {
+    pub(crate) fn register_unsafe_expr(&mut self, token: &ExprUnsafe) {
         self.register_keyword_tag(&token.unsafe_token);
         self.register_block(&token.block);
     }
@@ -152,7 +147,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     /// Identifier for the reciever
     pub(crate) fn register_method_call_expr(
         &mut self,
-        token: &'ast ExprMethodCall,
+        token: &ExprMethodCall,
         identifier: Option<Tag>,
     ) {
         self.register_expr(&token.receiver, identifier);
@@ -163,36 +158,36 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 
     /// Identifier for the last token on the path
-    pub(crate) fn register_path_expr(&mut self, token: &'ast ExprPath, identifier: Option<Tag>) {
+    pub(crate) fn register_path_expr(&mut self, token: &ExprPath, identifier: Option<Tag>) {
         self.try_register_qself(token.qself.as_ref());
         self.register_path(&token.path, identifier);
     }
 
     pub(crate) fn register_reference_expr(
         &mut self,
-        token: &'ast ExprReference,
+        token: &ExprReference,
         identifier: Option<Tag>,
     ) {
         self.try_register_keyword_tag(token.mutability.as_ref());
         self.register_expr(&token.expr, identifier);
     }
 
-    pub(crate) fn register_unary_expr(&mut self, token: &'ast ExprUnary, identifier: Option<Tag>) {
+    pub(crate) fn register_unary_expr(&mut self, token: &ExprUnary, identifier: Option<Tag>) {
         self.register_expr(&token.expr, identifier);
     }
 
     /// TODO CONSIDER HANDLING CASE WHICH THERE ARE MULTIPLE EXPRS, MAYBE AS ENUM
-    pub(crate) fn register_binary_expr(&mut self, token: &'ast ExprBinary) {
+    pub(crate) fn register_binary_expr(&mut self, token: &ExprBinary) {
         self.register_expr(&token.left, None);
         self.register_expr(&token.right, None);
     }
 
-    pub(crate) fn register_try_expr(&mut self, token: &'ast ExprTry, identifier: Option<Tag>) {
+    pub(crate) fn register_try_expr(&mut self, token: &ExprTry, identifier: Option<Tag>) {
         self.register_expr(&token.expr, identifier);
     }
 
     /// SAME TWO EXPRS
-    pub(crate) fn register_if_expr(&mut self, token: &'ast ExprIf) {
+    pub(crate) fn register_if_expr(&mut self, token: &ExprIf) {
         self.register_keyword_tag(&token.if_token);
         self.register_expr(&token.cond, None);
         self.register_block(&token.then_branch);
@@ -202,7 +197,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_call_expr(&mut self, token: &'ast ExprCall) {
+    pub(crate) fn register_call_expr(&mut self, token: &ExprCall) {
         self.register_expr(&token.func, Some(Tag::Function));
         let token_position = token.span().byte_range();
         // TODO Logic may be broken
@@ -220,29 +215,25 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_block_expr(&mut self, token: &'ast ExprBlock) {
+    pub(crate) fn register_block_expr(&mut self, token: &ExprBlock) {
         self.register_block(&token.block);
     }
 
-    pub(crate) fn register_parentheses_expr(
-        &mut self,
-        token: &'ast ExprParen,
-        identifier: Option<Tag>,
-    ) {
+    pub(crate) fn register_parentheses_expr(&mut self, token: &ExprParen, identifier: Option<Tag>) {
         self.register_expr(&token.expr, identifier);
     }
 
-    pub(crate) fn register_cast_expr(&mut self, token: &'ast ExprCast, identifier: Option<Tag>) {
+    pub(crate) fn register_cast_expr(&mut self, token: &ExprCast, identifier: Option<Tag>) {
         self.register_expr(&token.expr, identifier);
         self.register_keyword_tag(&token.as_token);
         self.register_type(&token.ty);
     }
-    pub(crate) fn register_field_expr(&mut self, token: &'ast ExprField, identifier: Option<Tag>) {
+    pub(crate) fn register_field_expr(&mut self, token: &ExprField, identifier: Option<Tag>) {
         self.register_expr(&token.base, identifier);
         self.register_member(&token.member);
     }
 
-    pub(crate) fn register_match_expr(&mut self, token: &'ast ExprMatch, identifier: Option<Tag>) {
+    pub(crate) fn register_match_expr(&mut self, token: &ExprMatch, identifier: Option<Tag>) {
         self.register_keyword_tag(&token.match_token);
         self.register_expr(&token.expr, identifier);
         for arm in &token.arms {
@@ -250,13 +241,13 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_tuple_expr(&mut self, token: &'ast ExprTuple) {
+    pub(crate) fn register_tuple_expr(&mut self, token: &ExprTuple) {
         for arg in &token.elems {
             self.register_expr(arg, None);
         }
     }
 
-    pub(crate) fn register_arm(&mut self, token: &'ast Arm) {
+    pub(crate) fn register_arm(&mut self, token: &Arm) {
         self.register_pat(&token.pat, None);
         if let Some(guard) = &token.guard {
             self.register_keyword_tag(&guard.0);
@@ -265,7 +256,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.register_expr(&token.body, None);
     }
 
-    pub(crate) fn register_member(&mut self, token: &'ast Member) {
+    pub(crate) fn register_member(&mut self, token: &Member) {
         match token {
             Member::Named(token) => {
                 self.register_variable_tag(token);
@@ -276,7 +267,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         }
     }
 
-    pub(crate) fn register_loop_expr(&mut self, token: &'ast ExprLoop) {
+    pub(crate) fn register_loop_expr(&mut self, token: &ExprLoop) {
         self.register_keyword_tag(&token.loop_token);
         self.register_block(&token.body);
     }
