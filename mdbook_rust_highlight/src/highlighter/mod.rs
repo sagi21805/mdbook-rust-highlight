@@ -7,7 +7,7 @@ use proc_macro2::Span;
 use regex::Regex;
 use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
-use syn::{File, Ident, spanned::Spanned, token, visit::Visit};
+use syn::{File, Ident, spanned::Spanned, visit::Visit};
 
 pub mod attr;
 pub mod error;
@@ -23,9 +23,36 @@ pub mod structure;
 pub mod ty;
 pub mod visit;
 
-pub trait Register: syn::spanned::Spanned + Sized {
-    fn register(&self, h: &mut RustHighlighter);
+pub trait Register: Sized {
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>);
+
+    fn register(&self, h: &mut RustHighlighter) {
+        self.register_as(h, None);
+    }
 }
+
+impl<T: Register> Register for Vec<T> {
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+        for item in self {
+            item.register_as(h, tag);
+        }
+    }
+}
+
+impl<T: Register> Register for Option<T> {
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+        if let Some(token) = self {
+            token.register_as(h, tag);
+        }
+    }
+}
+
+impl<T: Register> Register for Box<T> {
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+        self.as_ref().register_as(h, tag);
+    }
+}
+
 pub struct RustHighlighter<'a> {
     token_set: BTreeSet<SpannedToken>,
     unidentified: HashMap<Span, &'static str>,
@@ -49,6 +76,16 @@ impl<'a> RustHighlighter<'a> {
 
     fn register(&mut self, token: &impl Register) {
         token.register(self);
+    }
+
+    fn register_as(&mut self, token: &impl Register, tag: Option<Tag>) {
+        token.register_as(self, tag);
+    }
+
+    fn register_vec(&mut self, tokens: &Vec<impl Register>) {
+        for token in tokens {
+            self.register(token);
+        }
     }
 
     fn register_at(&mut self, start: usize, stop: usize, t: Option<Tag>) {
@@ -118,7 +155,7 @@ impl<'a> RustHighlighter<'a> {
         }
     }
 
-    pub(crate) fn register_ident(&mut self, token: &Ident) {
+    pub(crate) fn register_ident(&mut self, token: &Ident, tag: Option<Tag>) {
         self.register(token);
         if let Some(tag) = tag {
             self.remember_as(token, tag);

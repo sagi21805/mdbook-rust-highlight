@@ -1,42 +1,36 @@
 use syn::{AttrStyle, Attribute, Meta, MetaNameValue};
 
 use crate::{
-    highlighter::{RustHighlighter, macro_parsers::ident_list::IdentList},
+    highlighter::{Register, RustHighlighter, macro_parsers::ident_list::IdentList},
     tokens::Tag,
 };
 
-impl<'a> RustHighlighter<'a> {
-    pub(crate) fn register_attributes(&mut self, token: &Vec<Attribute>) {
-        for attr in token {
-            self.register_attribute(attr);
-        }
-    }
-
-    pub(crate) fn register_attribute(&mut self, token: &Attribute) {
+impl Register for Attribute {
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
         // Distinguish between a comment or docs to an attribute.
-        if token.pound_token.span.byte_range().len() == 1 {
-            self.register_attribute_tag(&token.pound_token);
-            self.register_attribute_tag(&token.bracket_token.span.join());
+        if self.pound_token.span.byte_range().len() == 1 {
+            h.register_attribute_tag(&self.pound_token);
+            h.register_attribute_tag(&self.bracket_token.span.join());
         } else {
             // If we are this means the attribute is a comment, so we return.
             return;
         }
-        match token.style {
-            AttrStyle::Outer => match &token.meta {
+        match self.style {
+            AttrStyle::Outer => match &self.meta {
                 Meta::Path(path) => {
-                    self.register_path(path, Some(Tag::Const));
+                    h.register_as(path, Some(Tag::Const));
                 }
                 Meta::List(list) => {
                     if list.path.get_ident().unwrap().to_string() == "unsafe" {
-                        self.register_keyword_tag(&list.path);
+                        h.register_keyword_tag(&list.path);
                     } else {
-                        self.register_path(&list.path, Some(Tag::Const));
+                        h.register_as(&list.path, Some(Tag::Const));
                     }
                     let ident_list = syn::parse2::<IdentList>(list.tokens.clone());
                     match ident_list {
                         Ok(list) => {
                             for item in &list.idents {
-                                self.register_type_tag(item);
+                                h.register_type_tag(item);
                             }
                         }
                         _ => {}
@@ -44,22 +38,22 @@ impl<'a> RustHighlighter<'a> {
                     let name_val = syn::parse2::<MetaNameValue>(list.tokens.clone());
                     match name_val {
                         Ok(name_val) => {
-                            self.register_variable_tag(&name_val.path.get_ident().unwrap());
-                            self.register_litstr_tag(&name_val.value);
+                            h.register_variable_tag(&name_val.path.get_ident().unwrap());
+                            h.register_litstr_tag(&name_val.value);
                         }
                         _ => {}
                     }
                 }
                 Meta::NameValue(name_val) => {
-                    self.register_path(&name_val.path, Some(Tag::Variable));
-                    self.register_expr(&name_val.value, None);
+                    h.register_as(&name_val.path, Some(Tag::Variable));
+                    h.register(&name_val.value);
                 }
             },
             AttrStyle::Inner(not) => {
-                self.register_attribute_tag(&not);
-                match &token.meta {
+                h.register_attribute_tag(&not);
+                match &self.meta {
                     Meta::Path(path) => {
-                        self.register_path(path, Some(Tag::Const));
+                        h.register_as(path, Some(Tag::Const));
                     }
                     _ => {}
                 }

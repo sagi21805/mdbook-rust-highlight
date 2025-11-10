@@ -2,106 +2,82 @@ use syn::{
     Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop,
     ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference,
     ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member,
-    spanned::Spanned,
+    spanned::Spanned, token,
 };
 
-use crate::{highlighter::RustHighlighter, tokens::Tag};
+use crate::{
+    highlighter::{Register, RustHighlighter},
+    tokens::Tag,
+};
+
+impl Register for Expr {
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+        match self {
+            // Expr::Array(token)
+            // | Expr::Assign(token)
+            // | Expr::Async(token)
+            // | Expr::Await(token)
+            // | Expr::Binary(token)
+            // | Expr::Block(token)
+            // | Expr::Break(token)
+            // | Expr::Call(token)
+            // | Expr::Cast(token)
+            // | Expr::Closure(token)
+            // | Expr::Const(token)
+            // | Expr::Continue(token)
+            // | Expr::Field(token)
+            // | Expr::ForLoop(token)
+            // | Expr::Group(token)
+            // | Expr::If(token)
+            // | Expr::Index(token)
+            // | Expr::Infer(token)
+            // | Expr::Let(token)
+            // | Expr::Lit(token)
+            // | Expr::Loop(token)
+            // | Expr::Macro(token)
+            // | Expr::Match(token)
+            // | Expr::MethodCall(token)
+            // | Expr::Paren(token)
+            // | Expr::Path(token)
+            // | Expr::Range(token)
+            // | Expr::RawAddr(token)
+            // | Expr::Reference(token)
+            // | Expr::Repeat(token)
+            // | Expr::Return(token)
+            // | Expr::Struct(token)
+            // | Expr::Try(token)
+            // | Expr::TryBlock(token)
+            // | Expr::Tuple(token)
+            // | Expr::Unary(token)
+            // | Expr::Unsafe(token)
+            // | Expr::While(token)
+            // | Expr::Yield(token)
+            // | Expr::Verbatim(token) => {
+                // h.register_as(token, tag);
+            }
+    }
+}
+
+impl Register for ExprAssign {
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.left);
+        h.register(&self.right);
+    }
+}
+
+impl Register for ExprReturn {
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register_keyword_tag(&self.return_token);
+        if let Some(expr) = self.expr.as_ref().map(|v| &**v) {
+            h.register(expr);
+        }
+    }
+}
 
 impl<'a> RustHighlighter<'a> {
-    pub(crate) fn register_expr(&mut self, token: &Expr, identifier: Option<Tag>) {
-        match token {
-            Expr::Lit(token) => {
-                self.register_lit_expr(token);
-            }
-            Expr::ForLoop(token) => {
-                self.register_for_loop_expr(token, identifier);
-            }
-            Expr::Unsafe(token) => {
-                self.register_unsafe_expr(token);
-            }
-            Expr::MethodCall(token) => {
-                self.register_method_call_expr(token, identifier);
-            }
-            Expr::Path(token) => {
-                self.register_path_expr(token, identifier);
-            }
-            Expr::Reference(token) => {
-                self.register_reference_expr(token, identifier);
-            }
-            Expr::Unary(token) => {
-                self.register_unary_expr(token, identifier);
-            }
-            Expr::Binary(token) => {
-                self.register_binary_expr(token);
-            }
-            Expr::Try(token) => {
-                self.register_try_expr(token, identifier);
-            }
-            Expr::If(token) => {
-                self.register_if_expr(token);
-            }
-            Expr::Call(token) => {
-                self.register_call_expr(token);
-            }
-            Expr::Block(token) => {
-                self.register_block_expr(token);
-            }
-            Expr::Paren(token) => {
-                self.register_parentheses_expr(token, identifier);
-            }
-            Expr::Cast(token) => {
-                self.register_cast_expr(token, identifier);
-            }
-            Expr::Field(token) => {
-                self.register_field_expr(token, identifier);
-            }
-            Expr::Match(token) => {
-                self.register_match_expr(token, identifier);
-            }
-            Expr::Tuple(token) => {
-                self.register_tuple_expr(token);
-            }
-            Expr::Loop(token) => {
-                self.register_loop_expr(token);
-            }
-            Expr::Struct(token) => {
-                self.register_struct_expr(token);
-            }
-            Expr::Macro(token) => {
-                self.register_macro(&token.mac);
-            }
-            Expr::Return(token) => {
-                self.register_return_expr(token);
-            }
-            Expr::Const(token) => {
-                self.register_attributes(&token.attrs);
-                self.register_keyword_tag(&token.const_token);
-                self.register_block(&token.block);
-            }
-            Expr::Repeat(token) => {
-                self.register_attributes(&token.attrs);
-                self.register_expr(&token.expr, None);
-                self.register_expr(&token.len, None);
-            }
-            Expr::Assign(token) => {
-                self.register_assign_expr(token);
-            }
-        }
-    }
-
-    pub(crate) fn register_assign_expr(&mut self, token: &ExprAssign) {
-        self.register_attributes(&token.attrs);
-        self.register_expr(&token.left, None);
-        self.register_expr(&token.right, None);
-    }
-
-    pub(crate) fn register_return_expr(&mut self, token: &ExprReturn) {
-        self.register_attributes(&token.attrs);
-        self.register_keyword_tag(&token.return_token);
-        if let Some(expr) = token.expr.as_ref().map(|v| &**v) {
-            self.register_expr(expr, None);
-        }
-    }
+    pub(crate) fn register_return_expr(&mut self, token: &ExprReturn) {}
 
     pub(crate) fn register_struct_expr(&mut self, token: &ExprStruct) {
         self.try_register_qself(token.qself.as_ref());

@@ -1,3 +1,5 @@
+use std::fs::OpenOptions;
+
 use proc_macro2::{TokenStream, TokenTree};
 use syn::{
     FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, LitStr,
@@ -248,10 +250,10 @@ impl<'a> RustHighlighter<'a> {
 }
 
 impl Register for ItemFn {
-    fn register(&self, h: &mut RustHighlighter) {
-        h.register_attributes(&self.attrs);
-        h.register_visibility(&self.vis);
-        h.register_function_sig(&self.sig);
-        h.register_block(&self.block);
+    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+        h.register_vec(&self.attrs);
+        h.register(&self.vis);
+        h.register(&self.sig);
+        h.register(&self.block);
     }
 }
