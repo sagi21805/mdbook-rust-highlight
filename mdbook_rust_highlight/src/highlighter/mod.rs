@@ -72,9 +72,7 @@ impl RustHighlighter {
         let mut output = Rope::from_str(&code);
         let syntax_tree: File =
             syn::parse_str(&code).expect(&format!("Failed to parse Rust code\n{}", code));
-        eprintln!("here4");
         self.visit_file(&syntax_tree);
-        eprintln!("here5");
         self.register_comments(&code);
         self.write_tokens(&mut output);
 

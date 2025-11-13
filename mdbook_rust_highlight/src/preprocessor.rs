@@ -77,13 +77,11 @@ impl RustHighlighterPreprocessor {
             };
             let features = self.whichlang_features(ctx, caps.get(GROUP_FEATURES));
             let code = code_match.as_str();
-            eprintln!("{}", code);
             let highlighted = highlighter.highlight(code);
             let html =
                 format!("<pre><code class=\"language-hlrs {features}\">{highlighted}</code></pre>");
             chap_replacement.insert(full.start(), (full.end(), html));
         }
-        eprintln!("here3");
         chap_replacement
     }
 

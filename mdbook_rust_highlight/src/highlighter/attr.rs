@@ -15,7 +15,6 @@ impl Register for Attribute {
             // If we are this means the attribute is a comment, so we return.
             return;
         }
-        eprintln!("here at attribute");
         match self.style {
             AttrStyle::Outer => match &self.meta {
                 Meta::Path(path) => {

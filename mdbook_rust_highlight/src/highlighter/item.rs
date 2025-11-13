@@ -61,14 +61,11 @@ impl Register for Signature {
         }
 
         h.register(&self.output);
-
-        eprintln!("at signature")
     }
 }
 
 impl Register for ItemFn {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
-        eprintln!("at fn");
         h.register(&self.attrs);
         h.register(&self.vis);
         h.register(&self.sig);
@@ -126,7 +123,6 @@ impl Register for UseTree {
 
 impl Register for ItemMacro {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
-        eprintln!("here at macro");
         if let Some(name) = self.ident.as_ref() {
             h.register_ident(name.into(), Some(Tag::Macro));
         }
@@ -191,6 +187,5 @@ impl Register for Visibility {
             Visibility::Inherited => {}
             _ => h.register_keyword_tag(self),
         }
-        eprintln!("here visibility");
     }
 }
