@@ -1,8 +1,8 @@
 use syn::{
     Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprConst, ExprField,
     ExprForLoop, ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath,
-    ExprReference, ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Field, Lit,
-    Member, spanned::Spanned,
+    ExprReference, ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member,
+    spanned::Spanned,
 };
 
 use crate::{

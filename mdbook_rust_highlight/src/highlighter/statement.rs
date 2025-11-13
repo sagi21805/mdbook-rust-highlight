@@ -24,7 +24,6 @@ impl Register for StmtMacro {
 impl Register for Block {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.stmts);
-        eprint!("here at stmt")
     }
 }
 

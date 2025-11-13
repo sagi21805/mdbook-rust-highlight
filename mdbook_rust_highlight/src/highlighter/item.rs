@@ -1,22 +1,15 @@
-use std::fs::OpenOptions;
-
-use proc_macro2::{TokenStream, TokenTree};
 use syn::{
-    FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, LitStr,
-    Macro, PathSegment, Signature, UseTree, Visibility,
+    FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, Macro,
+    Signature, UseTree, Visibility,
 };
 
 use crate::{
-    highlighter::{
-        Register, RustHighlighter,
-        macro_parsers::asm::{AsmArgs, AsmInput, AsmOptions, ExprOperand, RegOperand, RegSpec},
-    },
+    highlighter::{Register, RustHighlighter},
     tokens::Tag,
 };
 
 impl Register for Item {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
-        eprintln!("here10,ffdd");
         match self {
             Item::Fn(token) => h.register(token),
             Item::Enum(token) => h.register(token),
@@ -133,6 +126,7 @@ impl Register for UseTree {
 
 impl Register for ItemMacro {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        eprintln!("here at macro");
         if let Some(name) = self.ident.as_ref() {
             h.register_ident(name.into(), Some(Tag::Macro));
         }
@@ -174,7 +168,7 @@ impl Register for ItemImpl {
 impl Register for ImplItem {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            ImplItem::Const(token) => {}
+            ImplItem::Const(_token) => {}
             ImplItem::Fn(token) => {
                 h.register(&token.attrs);
                 h.register(&token.vis);
@@ -184,7 +178,7 @@ impl Register for ImplItem {
             ImplItem::Macro(token) => {
                 h.register(&token.mac);
             }
-            ImplItem::Type(token) => {}
+            ImplItem::Type(_token) => {}
             ImplItem::Verbatim(_) => {}
             _ => {}
         }

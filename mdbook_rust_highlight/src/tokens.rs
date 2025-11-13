@@ -3,7 +3,7 @@ use std::cmp::{Ordering, Reverse};
 use crate::highlighter::RustHighlighter;
 use mdbook_rust_highlight_derive::{RegisterVariants, add_try_method};
 use strum_macros::AsRefStr;
-use syn::{Ident, PathSegment, spanned::Spanned};
+use syn::Ident;
 
 #[derive(AsRefStr, RegisterVariants, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
 pub enum Tag {

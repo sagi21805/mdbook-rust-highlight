@@ -1,9 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::{
-    highlighter::{self, RustHighlighter},
-    tokens::Tag,
-};
+use crate::{highlighter::RustHighlighter, tokens::Tag};
 use mdbook::{
     BookItem,
     book::{Book, Chapter},
@@ -38,6 +35,10 @@ impl Preprocessor for RustHighlighterPreprocessor {
         ident_map.insert("size_of", Tag::Enum);
         ident_map.insert("PAGE_DIRECTORY_ENTRIES", Tag::LitNum);
         ident_map.insert("Ring0", Tag::Enum);
+        ident_map.insert("global_descriptor_table_register", Tag::Variable);
+        ident_map.insert("ExtendedRead", Tag::Enum);
+        ident_map.insert("DISK", Tag::Enum);
+        ident_map.insert("disk_number", Tag::Variable);
         let mut highlighter = RustHighlighter::new(ident_map);
 
         // Regex matches entire Rust code blocks including fences

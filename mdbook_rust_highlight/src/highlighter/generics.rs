@@ -127,7 +127,7 @@ impl Register for CapturedParam {
 }
 
 impl Register for TraitBound {
-    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+    fn register_as(&self, _h: &mut RustHighlighter, _tag: Option<Tag>) {
         todo!()
     }
 }
