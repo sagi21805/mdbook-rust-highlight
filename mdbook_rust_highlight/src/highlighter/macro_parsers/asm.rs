@@ -36,13 +36,12 @@ impl Parse for AsmInput {
         if input.peek(LitStr) {
             return Ok(Self::Instruction(input.parse()?));
         }
-        if input.peek(Ident) {
-            match input.parse::<AsmOptions>() {
-                Ok(options) => return Ok(Self::Options(options)),
-                Err(_) => {}
-            }
+
+        let fork = input.fork();
+        match fork.parse::<AsmOptions>() {
+            Ok(options) => return Ok(Self::Options(options)),
+            Err(_) => return Ok(Self::RegOperand(input.parse()?)),
         }
-        Ok(Self::RegOperand(input.parse()?))
     }
 }
 
@@ -105,14 +104,9 @@ impl Parse for OperandDirective {
         let directive: Ident = if input.peek(Token![in]) {
             let kw = input.parse::<Token![in]>()?;
             Ident::new("in", kw.span())
-        } else if input.peek(Token![const]) {
-            let kw = input.parse::<Token![const]>()?;
-            Ident::new("const", kw.span())
         } else {
-            eprintln!("here");
             input.parse()?
         };
-        eprintln!("directive: {}", directive.to_string());
 
         let paren = syn::parenthesized!(reg_buf in input);
         let reg = reg_buf.parse()?;
@@ -168,7 +162,7 @@ pub enum ExprOperand {
 
 impl Parse for ExprOperand {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if (input.peek(Ident) || input.peek(Token![in])) && input.peek2(Paren) {
+        if input.peek(Ident) || input.peek(Token![in]) {
             return Ok(Self::Operand(input.parse::<OperandDirective>()?));
         }
         if input.peek(Ident) && input.peek2(Brace) {
@@ -184,11 +178,13 @@ impl Parse for ExprOperand {
             }));
         }
         let ident = input.parse::<Ident>()?;
-        if ident == "sym" {
-            return Ok(Self::Symbol(ExprSym {
-                sym_token: ident,
-                expr: input.parse()?,
-            }));
+        if input.peek(Ident) {
+            if ident == "sym" {
+                return Ok(Self::Symbol(ExprSym {
+                    sym_token: ident,
+                    expr: input.parse()?,
+                }));
+            }
         }
         return Err(input.error("Expected Operand, Symbol, Const or Label"));
     }
