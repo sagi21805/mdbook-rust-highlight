@@ -12,7 +12,7 @@ pub const async unsafe extern "C" fn function(a: b, mut c: D) -> Vec<TestType> {
         "cli",
         // Then, load the table using our now created register.
         "lgdt [{}]",
-        inout("eax") &global_descriptor_table_register,
+        in("eax") &global_descriptor_table_register,
         options(readonly, nostack, preserves_flags)
     );
 }

@@ -1,6 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::{highlighter::RustHighlighter, tokens::Tag};
+use crate::{
+    highlighter::{self, RustHighlighter},
+    tokens::Tag,
+};
 use mdbook::{
     BookItem,
     book::{Book, Chapter},
@@ -14,14 +17,14 @@ pub struct RustHighlighterPreprocessor;
 const HLRS_CODEBLOCK_REGEX: &str = r"```rust(?:,?([^\n]+))?\n([\s\S]*?)\n?```";
 const RUST_ICON_URL: &str = "@https://www.rust-lang.org/static/images/rust-logo-blk.svg";
 
-pub type IdentMap<'a> = &'a mut HashMap<&'static str, Tag>;
+pub type IdentMap = HashMap<&'static str, Tag>;
 
 impl Preprocessor for RustHighlighterPreprocessor {
     fn name(&self) -> &str {
         "rust-highlight"
     }
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
-        let ident_map: IdentMap = &mut HashMap::new();
+        let mut ident_map: IdentMap = HashMap::new();
         // Maybe turn into an initialize function.
         ident_map.insert("Ok", Tag::Enum);
         ident_map.insert("Some", Tag::Enum);
@@ -35,11 +38,14 @@ impl Preprocessor for RustHighlighterPreprocessor {
         ident_map.insert("size_of", Tag::Enum);
         ident_map.insert("PAGE_DIRECTORY_ENTRIES", Tag::LitNum);
         ident_map.insert("Ring0", Tag::Enum);
+        let mut highlighter = RustHighlighter::new(ident_map);
+
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                let registered_blocks = self.register_chatper(ctx, chapter, &block_pat, ident_map);
+                let registered_blocks =
+                    self.register_chapter(ctx, chapter, &block_pat, &mut highlighter);
 
                 Self::write_codeblock(chapter, registered_blocks);
             }
@@ -49,12 +55,12 @@ impl Preprocessor for RustHighlighterPreprocessor {
 }
 
 impl RustHighlighterPreprocessor {
-    fn register_chatper(
+    fn register_chapter(
         &self,
         ctx: &PreprocessorContext,
         chapter: &Chapter,
         pattern: &Regex,
-        ident_map: IdentMap,
+        highlighter: &mut RustHighlighter,
     ) -> BTreeMap<usize, (usize, String)> {
         const GROUP_FULL: usize = 0;
         const GROUP_FEATURES: usize = 1;
@@ -70,11 +76,13 @@ impl RustHighlighterPreprocessor {
             };
             let features = self.whichlang_features(ctx, caps.get(GROUP_FEATURES));
             let code = code_match.as_str();
-            let highlighted = RustHighlighter::highlight(code, ident_map);
+            eprintln!("{}", code);
+            let highlighted = highlighter.highlight(code);
             let html =
                 format!("<pre><code class=\"language-hlrs {features}\">{highlighted}</code></pre>");
             chap_replacement.insert(full.start(), (full.end(), html));
         }
+        eprintln!("here3");
         chap_replacement
     }
 

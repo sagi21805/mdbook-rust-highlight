@@ -27,6 +27,7 @@ pub enum Tag {
     Const,
     Attribute,
     Item,
+    MacroAsm,
 }
 
 impl ToString for Tag {

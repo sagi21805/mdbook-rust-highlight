@@ -1,3 +1,8 @@
+use crate::{
+    highlighter::{Register, RustHighlighter},
+    tokens::Tag,
+};
+
 use super::ident_list::IdentList;
 // use proc_macro2::Span;
 use syn::{
@@ -208,5 +213,91 @@ impl Parse for RegOperand {
             param_eq: param_eq,
             expr: input.parse()?,
         })
+    }
+}
+
+impl Register for AsmArgs {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.args);
+    }
+}
+
+impl Register for AsmInput {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
+            AsmInput::Instruction(instruction) => h.register_litstr_tag(instruction),
+            AsmInput::Options(options) => h.register(options),
+            AsmInput::RegOperand(reg_operand) => h.register(reg_operand),
+        }
+    }
+}
+
+impl Register for AsmOptions {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.option_token);
+        for ident in &self.options.idents {
+            h.register_keyword_tag(ident);
+        }
+    }
+}
+
+impl Register for RegOperand {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        if let Some((param, _)) = &self.param_eq {
+            h.register_variable_tag(param);
+        }
+        h.register(&self.expr);
+    }
+}
+
+impl Register for ExprOperand {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
+            ExprOperand::Constant(token) => h.register(token),
+            ExprOperand::Label(token) => h.register(token),
+            ExprOperand::Operand(token) => h.register(token),
+            ExprOperand::Symbol(token) => h.register(token),
+        }
+    }
+}
+
+impl Register for RegSpec {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
+            RegSpec::ExplicitReg(s) => h.register_litstr_tag(s),
+            RegSpec::RegClass(i) => h.register_variable_tag(i),
+        }
+    }
+}
+
+impl Register for ExprConstAsm {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.const_token);
+        h.register(&self.expr);
+    }
+}
+
+impl Register for Label {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.label_token);
+        h.register(&self.stmt);
+    }
+}
+
+impl Register for OperandDirective {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.directive);
+        h.register(&self.reg);
+        h.register(&self.expr);
+        if let Some((_, expr)) = &self.dual {
+            h.register(expr);
+        }
+    }
+}
+
+impl Register for ExprSym {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.sym_token);
+        h.register(&self.expr);
     }
 }

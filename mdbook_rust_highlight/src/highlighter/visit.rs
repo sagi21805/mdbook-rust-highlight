@@ -2,12 +2,12 @@ use syn::{Item, visit::Visit};
 
 use crate::highlighter::RustHighlighter;
 
-impl<'a> Visit for RustHighlighter<'a> {
+impl<'ast> Visit<'ast> for RustHighlighter {
     fn visit_item(&mut self, i: &Item) {
-        self.register_item(i);
+        self.register(i);
     }
 
     fn visit_attribute(&mut self, i: &syn::Attribute) {
-        self.register_attribute(i);
+        self.register(i);
     }
 }

@@ -74,7 +74,7 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
                 (format_ident!("register_ident"), parse_quote!(Ident))
             }
             _ => (
-                format_ident!("register_tag"),
+                format_ident!("register_token"),
                 parse_quote!((impl syn::spanned::Spanned)),
             ),
         };
@@ -82,14 +82,13 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
         quote! {
             #[add_try_method]
             pub(crate) fn #token_method(&mut self, token: &#impls) {
-                let (start, end) = Self::span_position(token);
-                self.#register_function(token.into(), Some(#enum_name::#variant_name));
+                self.#register_function(token, Some(#enum_name::#variant_name));
             }
         }
     });
 
     let expanded = quote! {
-        impl<'a> RustHighlighter<'a> {
+        impl RustHighlighter {
             #(#methods)*
         }
     };

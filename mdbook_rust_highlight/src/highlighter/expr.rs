@@ -1,11 +1,8 @@
-use std::path::Path;
-
 use syn::{
-    Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprField, ExprForLoop,
-    ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprReference,
-    ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Field, Lit, Member, QSelf,
-    spanned::Spanned,
-    token::{self, Paren, Token},
+    Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprConst, ExprField,
+    ExprForLoop, ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath,
+    ExprReference, ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Field, Lit,
+    Member, spanned::Spanned,
 };
 
 use crate::{
@@ -14,7 +11,7 @@ use crate::{
 };
 
 impl Register for Expr {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
             // Expr::Array(token) => h.register(token),
             Expr::Assign(token) => h.register(token),
@@ -26,7 +23,7 @@ impl Register for Expr {
             Expr::Call(token) => h.register(token),
             Expr::Cast(token) => h.register(token),
             // Expr::Closure(token) => h.register(token),
-            // Expr::Const(token) => h.register(token),
+            Expr::Const(token) => h.register(token),
             // Expr::Continue(token) => h.register(token),
             Expr::Field(token) => h.register(token),
             Expr::ForLoop(token) => h.register(token),
@@ -60,8 +57,16 @@ impl Register for Expr {
     }
 }
 
+impl Register for ExprConst {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register_keyword_tag(&self.const_token);
+        h.register(&self.block);
+    }
+}
+
 impl Register for ExprAssign {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.left);
         h.register(&self.right);
@@ -69,7 +74,7 @@ impl Register for ExprAssign {
 }
 
 impl Register for ExprReturn {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register_keyword_tag(&self.return_token);
         if let Some(expr) = self.expr.as_ref().map(|v| &**v) {
@@ -79,7 +84,7 @@ impl Register for ExprReturn {
 }
 
 impl Register for ExprStruct {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.qself);
         h.register(&self.path);
@@ -89,7 +94,7 @@ impl Register for ExprStruct {
 }
 
 impl Register for ExprLit {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         match &self.lit {
             Lit::Int(_) | Lit::Float(_) => {
@@ -107,7 +112,7 @@ impl Register for ExprLit {
 }
 
 impl Register for ExprForLoop {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register_keyword_tag(&self.for_token);
         h.register(&self.pat);
@@ -118,7 +123,7 @@ impl Register for ExprForLoop {
 }
 
 impl Register for ExprUnsafe {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register_keyword_tag(&self.unsafe_token);
         h.register(&self.block);
@@ -126,7 +131,7 @@ impl Register for ExprUnsafe {
 }
 
 impl Register for ExprMethodCall {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.receiver);
         h.register_function_tag(&self.method);
@@ -135,15 +140,15 @@ impl Register for ExprMethodCall {
 }
 
 impl Register for ExprPath {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.qself);
-        h.register_as(&self.path, tag);
+        h.register_as(&self.path, _tag);
     }
 }
 
 impl Register for ExprReference {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.try_register_keyword_tag(self.mutability.as_ref());
         h.register(&self.expr);
@@ -151,14 +156,14 @@ impl Register for ExprReference {
 }
 
 impl Register for ExprUnary {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.expr);
     }
 }
 
 impl Register for ExprBinary {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.left);
         h.register(&self.right);
@@ -166,14 +171,14 @@ impl Register for ExprBinary {
 }
 
 impl Register for ExprTry {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.expr);
     }
 }
 
 impl Register for ExprIf {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register_keyword_tag(&self.if_token);
         h.register(&self.cond);
         h.register(&self.then_branch);
@@ -185,7 +190,7 @@ impl Register for ExprIf {
 }
 
 impl Register for ExprCall {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register_as(&self.func, Some(Tag::Function));
         h.register(&self.args);
@@ -194,9 +199,9 @@ impl Register for ExprCall {
         for pos in token_position.start..token_position.end {
             if let Some(unidentified) = h.unidentified.remove(&pos) {
                 if let Some(known) = h.ident_map.get(unidentified.to_string().as_str()) {
-                    self.register_ident(unidentified, Some(known.clone()));
+                    h.register_ident(&unidentified, Some(known.clone()));
                 } else {
-                    self.register_unidentified(unidentified);
+                    h.register_unidentified(&unidentified);
                 }
             }
         }
@@ -205,21 +210,21 @@ impl Register for ExprCall {
 }
 
 impl Register for ExprBlock {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.block);
     }
 }
 
 impl Register for ExprParen {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.expr);
     }
 }
 
 impl Register for ExprCast {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.expr);
         h.register_keyword_tag(&self.as_token);
@@ -228,7 +233,7 @@ impl Register for ExprCast {
 }
 
 impl Register for ExprField {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.base);
         h.register(&self.member);
@@ -236,7 +241,7 @@ impl Register for ExprField {
 }
 
 impl Register for ExprMatch {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register_keyword_tag(&self.match_token);
         h.register(&self.expr);
@@ -247,14 +252,14 @@ impl Register for ExprMatch {
 }
 
 impl Register for ExprTuple {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.elems);
     }
 }
 
 impl Register for Arm {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register(&self.pat);
         if let Some((if_token, guard_expr)) = &self.guard {
@@ -266,7 +271,7 @@ impl Register for Arm {
 }
 
 impl Register for Member {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
             Member::Named(token) => {
                 h.register_variable_tag(token);
@@ -279,7 +284,7 @@ impl Register for Member {
 }
 
 impl Register for ExprLoop {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register_keyword_tag(&self.loop_token);
         h.register(&self.body);
     }

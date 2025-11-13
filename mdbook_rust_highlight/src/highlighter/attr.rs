@@ -6,7 +6,7 @@ use crate::{
 };
 
 impl Register for Attribute {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         // Distinguish between a comment or docs to an attribute.
         if self.pound_token.span.byte_range().len() == 1 {
             h.register_attribute_tag(&self.pound_token);
@@ -15,6 +15,7 @@ impl Register for Attribute {
             // If we are this means the attribute is a comment, so we return.
             return;
         }
+        eprintln!("here at attribute");
         match self.style {
             AttrStyle::Outer => match &self.meta {
                 Meta::Path(path) => {

@@ -1,37 +1,46 @@
-use syn::{Field, FieldValue, Fields, Member};
+use syn::{Field, FieldValue, Fields, FieldsNamed, FieldsUnnamed, Member};
 
-use crate::highlighter::RustHighlighter;
+use crate::{
+    highlighter::{Register, RustHighlighter},
+    tokens::Tag,
+};
 
-impl<'a> RustHighlighter<'a> {
-    pub(crate) fn register_struct_fields(&mut self, token: &Fields) {
-        match token {
+impl Register for Fields {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
             Fields::Unit => {}
-            Fields::Named(token) => {
-                for token in &token.named {
-                    self.register_field(token);
-                }
-            }
-            Fields::Unnamed(token) => {
-                for token in &token.unnamed {
-                    self.register_field(token);
-                }
-            }
+            Fields::Named(token) => h.register(token),
+            Fields::Unnamed(token) => h.register(token),
         }
     }
+}
 
-    pub(crate) fn register_field(&mut self, token: &Field) {
-        self.register_visibility(&token.vis);
-        self.try_register_variable_tag(token.ident.as_ref());
-        self.register_type(&token.ty);
+impl Register for FieldsNamed {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.named);
     }
+}
 
-    pub(crate) fn register_field_value(&mut self, token: &FieldValue) {
-        match &token.member {
-            Member::Named(token) => {
-                self.register_variable_tag(token);
-            }
+impl Register for FieldsUnnamed {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.unnamed);
+    }
+}
+
+impl Register for Field {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.vis);
+        h.try_register_variable_tag(self.ident.as_ref());
+        h.register(&self.ty);
+    }
+}
+
+impl Register for FieldValue {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match &self.member {
+            Member::Named(token) => h.register_variable_tag(token),
             Member::Unnamed(_) => {}
         }
-        self.register_expr(&token.expr, None);
+        h.register(&self.expr);
     }
 }

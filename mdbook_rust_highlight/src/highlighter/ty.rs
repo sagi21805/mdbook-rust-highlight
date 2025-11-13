@@ -1,70 +1,65 @@
 use syn::{ReturnType, Type, TypeImplTrait, TypePath, TypePtr, TypeReference, TypeTuple};
 
-use crate::{highlighter::RustHighlighter, tokens::Tag};
+use crate::{
+    highlighter::{Register, RustHighlighter},
+    tokens::Tag,
+};
 
-impl<'a> RustHighlighter<'a> {
-    pub(crate) fn register_type(&mut self, token: &Type) {
-        match token {
-            Type::Reference(token) => {
-                self.register_reference_type(token);
-            }
-            Type::Path(token) => {
-                self.register_path_type(token);
-            }
-            Type::Tuple(token) => {
-                self.register_tuple_type(token);
-            }
-            Type::ImplTrait(token) => {
-                self.register_impl_trait_type(token);
-            }
-            Type::Ptr(token) => {
-                self.register_ptr_type(token);
-            }
-            Type::Array(token) => {
-                self.register_type(&token.elem);
-                self.register_expr(&token.len, None);
-            }
+impl Register for Type {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
+            Type::Reference(token) => h.register(token),
+            Type::Path(token) => h.register(token),
+            Type::Tuple(token) => h.register(token),
+            Type::Ptr(token) => h.register(token),
+            Type::ImplTrait(token) => h.register(token),
             _ => {}
         }
     }
+}
 
-    pub(crate) fn register_ptr_type(&mut self, token: &TypePtr) {
-        self.register_keyword_tag(&token.star_token);
-        self.try_register_keyword_tag(token.const_token.as_ref());
-        self.try_register_keyword_tag(token.mutability.as_ref());
-        self.register_type(&token.elem);
+impl Register for TypePtr {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.star_token);
+        h.try_register_keyword_tag(self.const_token.as_ref());
+        h.try_register_keyword_tag(self.mutability.as_ref());
+        h.register(&self.elem);
     }
+}
 
-    pub(crate) fn register_reference_type(&mut self, token: &TypeReference) {
-        self.try_register_lifetime_tag(token.lifetime.as_ref());
-        self.try_register_keyword_tag(token.mutability.as_ref());
-        self.register_type(&token.elem);
+impl Register for TypeReference {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.try_register_lifetime_tag(self.lifetime.as_ref());
+        h.try_register_keyword_tag(self.mutability.as_ref());
+        h.register(&self.elem);
     }
+}
 
-    pub(crate) fn register_path_type(&mut self, token: &TypePath) {
-        self.try_register_qself(token.qself.as_ref());
-        self.register_path(&token.path, Some(Tag::Type));
+impl Register for TypePath {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.qself);
+        h.register_as(&self.path, Some(Tag::Type));
     }
+}
 
-    pub(crate) fn register_tuple_type(&mut self, token: &TypeTuple) {
-        for arg in &token.elems {
-            self.register_type(arg);
-        }
+impl Register for TypeTuple {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.elems);
     }
+}
 
-    pub(crate) fn register_impl_trait_type(&mut self, token: &TypeImplTrait) {
-        self.register_keyword_tag(&token.impl_token);
-        for bound in &token.bounds {
-            self.register_bound(bound);
-        }
+impl Register for TypeImplTrait {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.impl_token);
+        h.register(&self.bounds);
     }
+}
 
-    pub(crate) fn register_return_type(&mut self, token: &ReturnType) {
-        match token {
+impl Register for ReturnType {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
             ReturnType::Default => {}
-            ReturnType::Type(_, token) => {
-                self.register_type(token);
-            }
+            ReturnType::Type(_, token) => h.register(token),
         }
     }
 }

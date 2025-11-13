@@ -1,50 +1,47 @@
-use crate::tokens::Tag;
-use mdbook_rust_highlight_derive::add_try_method;
+use crate::{highlighter::Register, tokens::Tag};
 use syn::{Block, Local, LocalInit, Stmt, StmtMacro};
 
 use crate::highlighter::RustHighlighter;
 
-impl<'a> RustHighlighter<'a> {
-    #[add_try_method]
-    pub(crate) fn register_statement(&mut self, token: &Stmt) {
-        match token {
-            Stmt::Local(token) => {
-                self.register_local(token);
-            }
-            Stmt::Expr(token, _) => {
-                self.register_expr(token, None);
-            }
-            Stmt::Macro(token) => {
-                self.register_macro_statement(token);
-            }
-            Stmt::Item(token) => {
-                self.register_item(token);
-            }
+impl Register for Stmt {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
+            Stmt::Local(token) => h.register(token),
+            Stmt::Expr(token, _) => h.register(token),
+            Stmt::Macro(token) => h.register(token),
+            Stmt::Item(token) => h.register(token),
         }
     }
+}
 
-    pub(crate) fn register_macro_statement(&mut self, token: &StmtMacro) {
-        self.register_macro(&token.mac);
+impl Register for StmtMacro {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.mac);
     }
+}
 
-    pub(crate) fn register_block(&mut self, token: &Block) {
-        for statement in &token.stmts {
-            self.register_statement(&statement);
-        }
+impl Register for Block {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.stmts);
+        eprint!("here at stmt")
     }
+}
 
-    pub(crate) fn register_local(&mut self, token: &Local) {
-        self.register_keyword_tag(&token.let_token);
-        self.register_pat(&token.pat, Some(Tag::Variable));
-        self.try_register_local_init(token.init.as_ref());
+impl Register for Local {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.let_token);
+        h.register_as(&self.pat, Some(Tag::Variable));
+        h.register(&self.init);
     }
+}
 
-    #[add_try_method]
-    pub(crate) fn register_local_init(&mut self, token: &LocalInit) {
-        self.register_expr(&token.expr, None);
-        if let Some((else_token, expr)) = &token.diverge {
-            self.register_keyword_tag(else_token);
-            self.register_expr(expr, None);
+impl Register for LocalInit {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.expr);
+        if let Some((else_token, expr)) = &self.diverge {
+            h.register_keyword_tag(else_token);
+            h.register(expr);
         }
     }
 }

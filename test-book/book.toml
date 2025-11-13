@@ -6,7 +6,7 @@ title = "test-book"
 
 [preprocessor.rust-highlight]
 whichlang = false
-command = "cargo run --release" # Add --offline when without network
+command = "cargo run --release --offline" # Add --offline when without network
 
 [output.html]
 additional-css = ["theme/hlrs.css", "theme/whichlang.css"]

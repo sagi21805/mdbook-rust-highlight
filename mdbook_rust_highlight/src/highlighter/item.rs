@@ -14,246 +14,189 @@ use crate::{
     tokens::Tag,
 };
 
-impl<'a> RustHighlighter<'a> {
-    pub(crate) fn register_item(&mut self, token: &Item) {
-        match token {
-            Item::Fn(token) => {
-                self.register_function_item(token);
-            }
-            Item::Enum(token) => {
-                self.register_enum_item(token);
-            }
-            Item::Use(token) => {
-                self.register_use_item(token);
-            }
-            Item::Macro(token) => {
-                self.register_macro_item(token);
-            }
-            Item::Impl(token) => {
-                self.register_impl_item(token);
-            }
-            Item::Struct(token) => {
-                self.register_struct_item(token);
-            }
-            Item::Static(token) => {
-                self.register_static_item(token);
-            }
-            Item::Const(token) => {
-                self.register_const_item(token);
-            }
+impl Register for Item {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        eprintln!("here10,ffdd");
+        match self {
+            Item::Fn(token) => h.register(token),
+            Item::Enum(token) => h.register(token),
+            Item::Use(token) => h.register(token),
+            Item::Macro(token) => h.register(token),
+            Item::Impl(token) => h.register(token),
+            Item::Struct(token) => h.register(token),
+            Item::Static(token) => h.register(token),
+            Item::Const(token) => h.register(token),
             _ => {}
         }
     }
+}
 
-    pub(crate) fn register_struct_item(&mut self, token: &ItemStruct) {
-        self.register_attributes(&token.attrs);
-        self.register_visibility(&token.vis);
-        self.register_keyword_tag(&token.struct_token);
-        self.register_type_tag(&token.ident);
-        self.register_struct_fields(&token.fields);
+impl Register for ItemStruct {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.vis);
+        h.register_keyword_tag(&self.struct_token);
+        h.register_type_tag(&self.ident);
+        h.register(&self.fields);
     }
+}
 
-    pub(crate) fn register_function_item(&mut self, token: &ItemFn) {}
-
-    pub(crate) fn register_function_sig(&mut self, token: &Signature) {
-        self.try_register_keyword_tag(token.constness.as_ref());
-        self.try_register_keyword_tag(token.asyncness.as_ref());
-        self.try_register_keyword_tag(token.unsafety.as_ref());
-        if let Some(abi) = &token.abi {
-            self.register_keyword_tag(&abi.extern_token);
-            self.try_register_litstr_tag(abi.name.as_ref());
+impl Register for Signature {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.try_register_keyword_tag(self.constness.as_ref());
+        h.try_register_keyword_tag(self.asyncness.as_ref());
+        h.try_register_keyword_tag(self.unsafety.as_ref());
+        if let Some(abi) = &self.abi {
+            h.register_keyword_tag(&abi.extern_token);
+            h.try_register_litstr_tag(abi.name.as_ref());
         }
-        self.register_keyword_tag(&token.fn_token);
-        self.register_function_tag(&token.ident);
+        h.register_keyword_tag(&self.fn_token);
+        h.register_function_tag(&self.ident);
 
-        for input in &token.inputs {
+        for input in &self.inputs {
             match input {
                 FnArg::Receiver(arg) => {
-                    self.register_selftoken_tag(&arg.self_token);
-                    self.try_register_keyword_tag(arg.mutability.as_ref());
-                    self.try_register_lifetime_tag(arg.lifetime());
+                    h.register_selftoken_tag(&arg.self_token);
+                    h.try_register_keyword_tag(arg.mutability.as_ref());
+                    h.try_register_lifetime_tag(arg.lifetime());
                 }
                 FnArg::Typed(type_pat) => {
-                    self.register_type_pat(type_pat);
-                    self.register_type(&type_pat.ty);
+                    h.register(type_pat);
+                    h.register(&type_pat.ty);
                 }
             }
         }
 
-        self.register_return_type(&token.output);
-    }
+        h.register(&self.output);
 
-    pub(crate) fn register_enum_item(&mut self, token: &ItemEnum) {
-        self.register_attributes(&token.attrs);
-        self.register_visibility(&token.vis);
-        self.register_keyword_tag(&token.enum_token);
-        self.register_tag(&token.ident, Some(Tag::Type));
+        eprintln!("at signature")
+    }
+}
+
+impl Register for ItemFn {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        eprintln!("at fn");
+        h.register(&self.attrs);
+        h.register(&self.vis);
+        h.register(&self.sig);
+        h.register(&self.block);
+    }
+}
+
+impl Register for ItemEnum {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.vis);
+        h.register_keyword_tag(&self.enum_token);
+        h.register_type_tag(&self.ident);
         // TODO REGISTER GENERICS AND FIELDS
-        for variant in &token.variants {
-            self.register_enum_tag(&variant.ident);
+        for variant in &self.variants {
+            h.register_enum_tag(&variant.ident);
             if let Some((_, discriminant)) = &variant.discriminant {
-                self.register_expr(discriminant, None);
+                h.register(discriminant);
             }
         }
     }
+}
 
-    pub(crate) fn register_use_item(&mut self, token: &ItemUse) {
-        self.register_visibility(&token.vis);
-        self.register_keyword_tag(&token.use_token);
-        self.register_use_tree(&token.tree);
+impl Register for ItemUse {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.vis);
+        h.register_keyword_tag(&self.use_token);
+        h.register(&self.tree);
     }
-
-    pub(crate) fn register_use_tree(&mut self, token: &UseTree) {
-        match token {
+}
+impl Register for UseTree {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
             UseTree::Glob(_) => {}
             UseTree::Group(token) => {
                 for tree in &token.items {
-                    self.register_use_tree(tree);
+                    h.register(tree);
                 }
             }
             UseTree::Path(token) => {
-                self.register_segment_tag(&token.ident);
-                self.register_use_tree(&token.tree);
+                h.register_segment_tag(&token.ident);
+                h.register(&token.tree);
             }
             UseTree::Name(token) => {
-                self.register_unidentified((&token.ident).into());
+                h.register_unidentified((&token.ident).into());
             }
             UseTree::Rename(token) => {
-                self.register_segment_tag(&token.ident);
-                self.register_keyword_tag(&token.as_token);
-                self.register_segment_tag(&token.rename);
+                h.register_segment_tag(&token.ident);
+                h.register_keyword_tag(&token.as_token);
+                h.register_segment_tag(&token.rename);
             }
         }
     }
+}
 
-    pub(crate) fn register_macro_item(&mut self, token: &ItemMacro) {
-        if let Some(name) = token.ident.as_ref() {
-            self.register_ident(name.into(), Some(Tag::Macro));
+impl Register for ItemMacro {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        if let Some(name) = self.ident.as_ref() {
+            h.register_ident(name.into(), Some(Tag::Macro));
         }
-        self.register_macro(&token.mac);
+        h.register(&self.mac);
     }
+}
 
-    pub(crate) fn register_macro(&mut self, token: &Macro) {
-        let mut tag = Tag::Macro;
-        eprintln!("In regular macro");
-        if let Some(ident) = token.path.get_ident() {
+impl Register for Macro {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        let mut macro_tag = Tag::Macro;
+        if let Some(ident) = self.path.get_ident() {
             match ident.to_string().as_str() {
-                "macro_rules" => tag = Tag::Keyword,
+                "macro_rules" => macro_tag = Tag::Keyword,
                 "asm" => {
-                    eprintln!("{:?}", self.register_asm_macro(token.tokens.clone()));
+                    h.register_as(&self.tokens, Some(Tag::MacroAsm));
                 }
                 _ => {}
-            };
-        };
-        self.register_path(&token.path, Some(tag));
-        self.register_macro_tag(&token.bang_token);
-    }
-
-    pub(crate) fn register_asm_macro(&mut self, token: TokenStream) -> syn::Result<()> {
-        let args = syn::parse2::<AsmArgs>(token)?;
-        for arg in &args.args {
-            match arg {
-                AsmInput::Instruction(instruction) => {
-                    self.register_litstr_tag(instruction);
-                }
-                AsmInput::Options(options) => {
-                    self.register_asm_options(options);
-                }
-                AsmInput::RegOperand(reg_operand) => {
-                    self.register_asm_reg_operand(reg_operand);
-                }
             }
         }
-        Ok(())
+        h.register_as(&self.path, Some(macro_tag));
+        h.register_macro_tag(&self.bang_token);
     }
+}
 
-    pub(crate) fn register_asm_options(&mut self, token: &AsmOptions) {
-        self.register_keyword_tag(&token.option_token);
-        for option in &token.options.idents {
-            self.register_keyword_tag(option);
-        }
-    }
-
-    pub(crate) fn register_asm_reg_operand(&mut self, token: &RegOperand) {
-        if let Some((param, _)) = &token.param_eq {
-            self.register_variable_tag(param);
-        }
-        self.register_asm_expr_operand(&token.expr);
-    }
-
-    pub(crate) fn register_asm_expr_operand(&mut self, token: &ExprOperand) {
-        match token {
-            ExprOperand::Constant(constant) => {
-                self.register_keyword_tag(&constant.const_token);
-                // self.register_expr(&constant.expr, None);
-            }
-            ExprOperand::Label(label) => {
-                self.register_keyword_tag(&label.label_token);
-            }
-            ExprOperand::Operand(op) => {
-                self.register_keyword_tag(&op.directive);
-                self.register_reg_spec(&op.reg);
-            }
-            ExprOperand::Symbol(sym) => {}
-        }
-    }
-
-    pub(crate) fn register_reg_spec(&mut self, token: &RegSpec) {
-        match token {
-            RegSpec::ExplicitReg(s) => {
-                self.register_litstr_tag(s);
-            }
-            RegSpec::RegClass(i) => {
-                self.register_variable_tag(i);
-            }
-        }
-    }
-
+impl Register for ItemImpl {
     // TODO COMPLETE
-    pub(crate) fn register_impl_item(&mut self, token: &ItemImpl) {
-        self.try_register_keyword_tag(token.unsafety.as_ref());
-        self.register_keyword_tag(&token.impl_token);
-        if let Some((_, trait_name, for_token)) = &token.trait_ {
-            self.register_path(trait_name, Some(Tag::Type));
-            self.register_keyword_tag(for_token);
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.try_register_keyword_tag(self.unsafety.as_ref());
+        h.register_keyword_tag(&self.impl_token);
+        if let Some((_, trait_name, for_token)) = &self.trait_ {
+            h.register_as(trait_name, Some(Tag::Type));
+            h.register_keyword_tag(for_token);
         }
-        self.register_type(&token.self_ty);
-        for item in &token.items {
-            self.register_item_impl(item)
-        }
+        h.register(&self.self_ty);
+        h.register(&self.items);
     }
+}
 
-    pub(crate) fn register_item_impl(&mut self, token: &ImplItem) {
-        match token {
+impl Register for ImplItem {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
             ImplItem::Const(token) => {}
             ImplItem::Fn(token) => {
-                self.register_attributes(&token.attrs);
-                self.register_visibility(&token.vis);
-                self.register_function_sig(&token.sig);
-                self.register_block(&token.block);
+                h.register(&token.attrs);
+                h.register(&token.vis);
+                h.register(&token.sig);
+                h.register(&token.block);
             }
             ImplItem::Macro(token) => {
-                self.register_macro(&token.mac);
+                h.register(&token.mac);
             }
             ImplItem::Type(token) => {}
             ImplItem::Verbatim(_) => {}
             _ => {}
         }
     }
-
-    pub(crate) fn register_visibility(&mut self, token: &Visibility) {
-        match token {
-            Visibility::Inherited => {}
-            _ => self.register_keyword_tag(token),
-        }
-    }
 }
 
-impl Register for ItemFn {
-    fn register_as(&self, h: &mut RustHighlighter, tag: Option<Tag>) {
-        h.register_vec(&self.attrs);
-        h.register(&self.vis);
-        h.register(&self.sig);
-        h.register(&self.block);
+impl Register for Visibility {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
+            Visibility::Inherited => {}
+            _ => h.register_keyword_tag(self),
+        }
+        eprintln!("here visibility");
     }
 }
