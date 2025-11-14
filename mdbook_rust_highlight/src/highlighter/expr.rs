@@ -1,8 +1,8 @@
 use syn::{
     Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprConst, ExprField,
-    ExprForLoop, ExprIf, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath,
-    ExprReference, ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member,
-    spanned::Spanned,
+    ExprForLoop, ExprIf, ExprLit, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen,
+    ExprPath, ExprReference, ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe,
+    Lit, Member, spanned::Spanned,
 };
 
 use crate::{
@@ -34,7 +34,7 @@ impl Register for Expr {
             // Expr::Let(token) => h.register_as(token, _tag),
             Expr::Lit(token) => h.register_as(token, _tag),
             Expr::Loop(token) => h.register_as(token, _tag),
-            // Expr::Macro(token) => h.register_as(token, _tag),
+            Expr::Macro(token) => h.register_as(token, _tag),
             Expr::Match(token) => h.register_as(token, _tag),
             Expr::MethodCall(token) => h.register_as(token, _tag),
             Expr::Paren(token) => h.register_as(token, _tag),
@@ -54,6 +54,13 @@ impl Register for Expr {
             Expr::Unsafe(token) => h.register_as(token, _tag),
             _ => {}
         }
+    }
+}
+
+impl Register for ExprMacro {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.mac);
     }
 }
 
@@ -289,4 +296,3 @@ impl Register for ExprLoop {
         h.register(&self.body);
     }
 }
-//
