@@ -1,6 +1,5 @@
 use syn::{Ident, Token, parse::Parse, punctuated::Punctuated};
 
-#[derive(Debug)]
 pub struct IdentList {
     pub idents: Punctuated<Ident, Token![,]>,
 }
