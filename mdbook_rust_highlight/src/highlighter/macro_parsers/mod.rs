@@ -5,18 +5,18 @@ use crate::{
         Register, RustHighlighter,
         macro_parsers::{
             asm::AsmArgs,
+            empty_macro_def::EmptyMacroDef,
             ident_list::{ExperList, IdentList},
-            macro_rules_sugar::EmptyMacroRulesDefinition,
         },
     },
     tokens::Tag,
 };
 
 pub mod asm;
+pub mod empty_macro_def;
 pub mod expr_macro;
 pub mod ident_list;
 pub mod ident_macro;
-pub mod macro_rules_sugar;
 
 impl Register for TokenStream {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
@@ -35,7 +35,7 @@ impl Register for TokenStream {
                     h.register(&args)
                 }
                 Tag::MacroCode => {
-                    let args = syn::parse2::<EmptyMacroRulesDefinition>(self.clone()).unwrap();
+                    let args = syn::parse2::<EmptyMacroDef>(self.clone()).unwrap();
                     h.register(&args);
                 }
                 _ => {
