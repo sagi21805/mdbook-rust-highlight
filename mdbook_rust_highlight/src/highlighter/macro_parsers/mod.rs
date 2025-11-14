@@ -6,7 +6,7 @@ use crate::{
         macro_parsers::{
             asm::AsmArgs,
             empty_macro_def::EmptyMacroDef,
-            ident_list::{ExperList, IdentList},
+            ident_list::{ExprList, IdentList},
         },
     },
     tokens::Tag,
@@ -27,7 +27,7 @@ impl Register for TokenStream {
                     h.register(&args)
                 }
                 Tag::MacroExpr => {
-                    let args = syn::parse2::<ExperList>(self.clone()).unwrap();
+                    let args = syn::parse2::<ExprList>(self.clone()).unwrap();
                     h.register(&args)
                 }
                 Tag::MacroIdent => {
