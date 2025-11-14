@@ -197,7 +197,6 @@ pub struct RegOperand {
 
 impl Parse for RegOperand {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        eprintln!("{}", input);
         // check first token is an Ident and second is '='
         let param_eq = if input.peek(Ident) && input.peek2(Token![=]) {
             let param = input.parse()?;
@@ -243,17 +242,17 @@ impl Register for RegOperand {
         if let Some((param, _)) = &self.param_eq {
             h.register_variable_tag(param);
         }
-        h.register(&self.expr);
+        h.register_as(&self.expr, _tag);
     }
 }
 
 impl Register for ExprOperand {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            ExprOperand::Constant(token) => h.register(token),
-            ExprOperand::Label(token) => h.register(token),
-            ExprOperand::Operand(token) => h.register(token),
-            ExprOperand::Symbol(token) => h.register(token),
+            ExprOperand::Constant(token) => h.register_as(token, _tag),
+            ExprOperand::Label(token) => h.register_as(token, _tag),
+            ExprOperand::Operand(token) => h.register_as(token, _tag),
+            ExprOperand::Symbol(token) => h.register_as(token, _tag),
         }
     }
 }
@@ -270,7 +269,7 @@ impl Register for RegSpec {
 impl Register for ExprConstAsm {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register_keyword_tag(&self.const_token);
-        h.register(&self.expr);
+        h.register_as(&self.expr, _tag);
     }
 }
 
@@ -285,7 +284,7 @@ impl Register for OperandDirective {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register_keyword_tag(&self.directive);
         h.register(&self.reg);
-        h.register(&self.expr);
+        h.register_as(&self.expr, _tag);
         if let Some((_, expr)) = &self.dual {
             h.register(expr);
         }
@@ -295,6 +294,6 @@ impl Register for OperandDirective {
 impl Register for ExprSym {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register_keyword_tag(&self.sym_token);
-        h.register(&self.expr);
+        h.register_as(&self.expr, _tag);
     }
 }

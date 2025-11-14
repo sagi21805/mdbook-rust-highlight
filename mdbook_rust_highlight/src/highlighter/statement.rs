@@ -6,10 +6,10 @@ use crate::highlighter::RustHighlighter;
 impl Register for Stmt {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            Stmt::Local(token) => h.register(token),
-            Stmt::Expr(token, _) => h.register(token),
-            Stmt::Macro(token) => h.register(token),
-            Stmt::Item(token) => h.register(token),
+            Stmt::Local(token) => h.register_as(token, _tag),
+            Stmt::Expr(token, _) => h.register_as(token, _tag),
+            Stmt::Macro(token) => h.register_as(token, _tag),
+            Stmt::Item(token) => h.register_as(token, _tag),
         }
     }
 }
@@ -37,7 +37,7 @@ impl Register for Local {
 
 impl Register for LocalInit {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
-        h.register(&self.expr);
+        h.register_as(&self.expr, _tag);
         if let Some((else_token, expr)) = &self.diverge {
             h.register_keyword_tag(else_token);
             h.register(expr);

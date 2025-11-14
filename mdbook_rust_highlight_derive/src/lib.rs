@@ -1,8 +1,6 @@
-use proc_macro::{Ident, TokenStream};
+use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{
-    Data, DeriveInput, FnArg, ItemFn, ItemImpl, Type, TypeImplTrait, parse_macro_input, parse_quote,
-};
+use syn::{Data, DeriveInput, FnArg, ItemFn, Type, parse_macro_input, parse_quote};
 
 #[proc_macro_attribute]
 pub fn add_try_method(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -70,7 +68,7 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
         let variant_string = variant_name.to_string().to_lowercase();
         let token_method = format_ident!("register_{}_tag", variant_string);
         let (register_function, impls): (_, syn::Type) = match variant_string.as_str() {
-            "function" | "type" | "enum" | "ident" | "const" => {
+            "function" | "type" | "enum" | "variable" | "const" => {
                 (format_ident!("register_ident"), parse_quote!(Ident))
             }
             _ => (

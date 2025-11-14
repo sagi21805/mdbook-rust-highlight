@@ -7,8 +7,8 @@ use syn::{Path, PathArguments, PathSegment, QSelf};
 impl Register for PathArguments {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            PathArguments::Parenthesized(token) => h.register(token),
-            PathArguments::AngleBracketed(token) => h.register(token),
+            PathArguments::Parenthesized(token) => h.register_as(token, _tag),
+            PathArguments::AngleBracketed(token) => h.register_as(token, _tag),
             PathArguments::None => {}
         }
     }

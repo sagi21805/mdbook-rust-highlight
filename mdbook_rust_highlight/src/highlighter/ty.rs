@@ -8,11 +8,11 @@ use crate::{
 impl Register for Type {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            Type::Reference(token) => h.register(token),
-            Type::Path(token) => h.register(token),
-            Type::Tuple(token) => h.register(token),
-            Type::Ptr(token) => h.register(token),
-            Type::ImplTrait(token) => h.register(token),
+            Type::Reference(token) => h.register_as(token, _tag),
+            Type::Path(token) => h.register_as(token, _tag),
+            Type::Tuple(token) => h.register_as(token, _tag),
+            Type::Ptr(token) => h.register_as(token, _tag),
+            Type::ImplTrait(token) => h.register_as(token, _tag),
             _ => {}
         }
     }
@@ -59,7 +59,7 @@ impl Register for ReturnType {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
             ReturnType::Default => {}
-            ReturnType::Type(_, token) => h.register(token),
+            ReturnType::Type(_, token) => h.register_as(token, _tag),
         }
     }
 }

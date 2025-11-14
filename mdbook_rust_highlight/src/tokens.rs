@@ -43,7 +43,7 @@ impl ToString for Tag {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct SpannedToken {
     pub(crate) kind: Option<Tag>,
     pub(crate) start: usize,

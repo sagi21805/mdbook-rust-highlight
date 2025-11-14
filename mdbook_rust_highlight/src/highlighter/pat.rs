@@ -8,14 +8,14 @@ use crate::{
 impl Register for Pat {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            Pat::Ident(token) => h.register(token),
+            Pat::Ident(token) => h.register_as(token, _tag),
             Pat::Reference(token) => h.register_as(token, _tag),
-            Pat::Type(token) => h.register(token),
-            Pat::Path(token) => h.register(token),
-            Pat::Tuple(token) => h.register(token),
-            Pat::TupleStruct(token) => h.register(token),
-            Pat::Or(token) => h.register(token),
-            Pat::Const(token) => h.register(token),
+            Pat::Type(token) => h.register_as(token, _tag),
+            Pat::Path(token) => h.register_as(token, _tag),
+            Pat::Tuple(token) => h.register_as(token, _tag),
+            Pat::TupleStruct(token) => h.register_as(token, _tag),
+            Pat::Or(token) => h.register_as(token, _tag),
+            Pat::Const(token) => h.register_as(token, _tag),
             _ => {}
         }
     }

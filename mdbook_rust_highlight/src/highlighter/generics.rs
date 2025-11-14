@@ -20,9 +20,9 @@ impl Register for Generics {
 impl Register for GenericParam {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            GenericParam::Const(token) => h.register(token),
-            GenericParam::Lifetime(token) => h.register(token),
-            GenericParam::Type(token) => h.register(token),
+            GenericParam::Const(token) => h.register_as(token, _tag),
+            GenericParam::Lifetime(token) => h.register_as(token, _tag),
+            GenericParam::Type(token) => h.register_as(token, _tag),
         }
     }
 }
@@ -90,8 +90,8 @@ impl Register for TypeParamBound {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
             TypeParamBound::Lifetime(token) => h.register_lifetime_tag(token),
-            TypeParamBound::PreciseCapture(token) => h.register(token),
-            TypeParamBound::Trait(token) => h.register(token),
+            TypeParamBound::PreciseCapture(token) => h.register_as(token, _tag),
+            TypeParamBound::Trait(token) => h.register_as(token, _tag),
             TypeParamBound::Verbatim(_) => {}
             _ => todo!(),
         }
@@ -109,8 +109,8 @@ impl Register for PredicateType {
 impl Register for WherePredicate {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            WherePredicate::Lifetime(token) => h.register(token),
-            WherePredicate::Type(token) => h.register(token),
+            WherePredicate::Lifetime(token) => h.register_as(token, _tag),
+            WherePredicate::Type(token) => h.register_as(token, _tag),
             _ => {}
         }
     }
@@ -135,7 +135,7 @@ impl Register for TraitBound {
 impl Register for GenericArgument {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            GenericArgument::Type(token) => h.register(token),
+            GenericArgument::Type(token) => h.register_as(token, _tag),
             GenericArgument::Lifetime(token) => h.register_lifetime_tag(token),
             _ => {}
         }

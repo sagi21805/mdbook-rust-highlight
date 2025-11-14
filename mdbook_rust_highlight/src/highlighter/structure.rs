@@ -9,8 +9,8 @@ impl Register for Fields {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
             Fields::Unit => {}
-            Fields::Named(token) => h.register(token),
-            Fields::Unnamed(token) => h.register(token),
+            Fields::Named(token) => h.register_as(token, _tag),
+            Fields::Unnamed(token) => h.register_as(token, _tag),
         }
     }
 }
@@ -41,6 +41,6 @@ impl Register for FieldValue {
             Member::Named(token) => h.register_variable_tag(token),
             Member::Unnamed(_) => {}
         }
-        h.register(&self.expr);
+        h.register_as(&self.expr, _tag);
     }
 }

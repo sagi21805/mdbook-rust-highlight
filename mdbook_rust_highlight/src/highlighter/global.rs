@@ -15,7 +15,7 @@ impl Register for ItemStatic {
         }
         h.register_variable_tag(&self.ident);
         h.register(&self.ty);
-        h.register(&self.expr);
+        h.register_as(&self.expr, _tag);
     }
 }
 
@@ -27,6 +27,6 @@ impl Register for ItemConst {
         h.register_const_tag(&self.ident);
         h.register(&self.generics);
         h.register(&self.ty);
-        h.register(&self.expr);
+        h.register_as(&self.expr, _tag);
     }
 }

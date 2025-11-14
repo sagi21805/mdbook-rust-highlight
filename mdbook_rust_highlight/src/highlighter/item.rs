@@ -11,14 +11,14 @@ use crate::{
 impl Register for Item {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            Item::Fn(token) => h.register(token),
-            Item::Enum(token) => h.register(token),
-            Item::Use(token) => h.register(token),
-            Item::Macro(token) => h.register(token),
-            Item::Impl(token) => h.register(token),
-            Item::Struct(token) => h.register(token),
-            Item::Static(token) => h.register(token),
-            Item::Const(token) => h.register(token),
+            Item::Fn(token) => h.register_as(token, _tag),
+            Item::Enum(token) => h.register_as(token, _tag),
+            Item::Use(token) => h.register_as(token, _tag),
+            Item::Macro(token) => h.register_as(token, _tag),
+            Item::Impl(token) => h.register_as(token, _tag),
+            Item::Struct(token) => h.register_as(token, _tag),
+            Item::Static(token) => h.register_as(token, _tag),
+            Item::Const(token) => h.register_as(token, _tag),
             _ => {}
         }
     }
@@ -54,7 +54,7 @@ impl Register for Signature {
                     h.try_register_lifetime_tag(arg.lifetime());
                 }
                 FnArg::Typed(type_pat) => {
-                    h.register(type_pat);
+                    h.register_as(type_pat, Some(Tag::Variable));
                     h.register(&type_pat.ty);
                 }
             }
