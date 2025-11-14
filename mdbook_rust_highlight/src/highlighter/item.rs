@@ -125,6 +125,10 @@ impl Register for ItemMacro {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         if let Some(name) = self.ident.as_ref() {
             h.register_ident(name.into(), Some(Tag::Macro));
+            match name.to_string().as_str() {
+                "table_entry_flags" => h.register_as(&self.mac.tokens, Some(Tag::MacroCode)),
+                _ => {}
+            }
         }
         h.register(&self.mac);
     }
@@ -133,15 +137,17 @@ impl Register for ItemMacro {
 impl Register for Macro {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         let mut macro_tag = Tag::Macro;
-        if let Some(ident) = self.path.get_ident() {
-            match ident.to_string().as_str() {
+        if let Some(segment) = self.path.segments.last() {
+            match segment.ident.to_string().as_str() {
                 "macro_rules" => macro_tag = Tag::Keyword,
-                "asm" => {
-                    h.register_as(&self.tokens, Some(Tag::MacroAsm));
+                "asm" => h.register_as(&self.tokens, Some(Tag::MacroAsm)),
+                "flag" | "println" | "eprintln" | "print" => {
+                    h.register_as(&self.tokens, Some(Tag::MacroExpr))
                 }
                 _ => {}
             }
         }
+
         h.register_as(&self.path, Some(macro_tag));
         h.register_macro_tag(&self.bang_token);
     }

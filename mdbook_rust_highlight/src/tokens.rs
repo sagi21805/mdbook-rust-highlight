@@ -28,6 +28,9 @@ pub enum Tag {
     Attribute,
     Item,
     MacroAsm,
+    MacroIdent,
+    MacroExpr,
+    MacroCode,
 }
 
 impl ToString for Tag {
