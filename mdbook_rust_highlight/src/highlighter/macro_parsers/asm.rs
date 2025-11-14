@@ -45,7 +45,6 @@ impl Parse for AsmInput {
     }
 }
 
-#[derive(Debug)]
 /// Structs represents the options on asm! macro `options(nostack, noreturn)`
 pub struct AsmOptions {
     pub option_token: Ident,
