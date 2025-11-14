@@ -38,13 +38,14 @@ impl Parse for AsmInput {
         }
 
         let fork = input.fork();
-        match fork.parse::<AsmOptions>() {
-            Ok(options) => return Ok(Self::Options(options)),
-            Err(_) => return Ok(Self::RegOperand(input.parse()?)),
+        if fork.parse::<AsmOptions>().is_ok() {
+            return Ok(Self::Options(input.parse()?));
         }
+        Ok(Self::RegOperand(input.parse()?))
     }
 }
 
+#[derive(Debug)]
 /// Structs represents the options on asm! macro `options(nostack, noreturn)`
 pub struct AsmOptions {
     pub option_token: Ident,
@@ -197,6 +198,7 @@ pub struct RegOperand {
 
 impl Parse for RegOperand {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        eprintln!("{}", input);
         // check first token is an Ident and second is '='
         let param_eq = if input.peek(Ident) && input.peek2(Token![=]) {
             let param = input.parse()?;
