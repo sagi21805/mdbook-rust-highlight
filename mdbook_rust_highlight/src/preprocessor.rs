@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::{highlighter::RustHighlighter, tokens::TokenTag};
+use crate::{highlighter::RustHighlighter, tokens::Tag};
 use mdbook::{
     BookItem,
     book::{Book, Chapter},
@@ -11,48 +11,57 @@ use ropey::Rope;
 
 pub struct RustHighlighterPreprocessor;
 
-const HLRS_CODEBLOCK_REGEX: &str = r"```hlrs(?:,?([^\n]+))?\n([\s\S]*?)\n?```";
+const HLRS_CODEBLOCK_REGEX: &str = r"```rust(?:,?([^\n]+))?\n([\s\S]*?)\n?```";
 const RUST_ICON_URL: &str = "@https://www.rust-lang.org/static/images/rust-logo-blk.svg";
 
-pub type IdentMap<'a> = &'a mut HashMap<&'static str, TokenTag>;
+pub type IdentMap = HashMap<&'static str, Tag>;
 
 impl Preprocessor for RustHighlighterPreprocessor {
     fn name(&self) -> &str {
         "rust-highlight"
     }
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
-        let ident_map: IdentMap = &mut HashMap::new();
+        let mut ident_map: IdentMap = HashMap::new();
         // Maybe turn into an initialize function.
-        ident_map.insert("Ok", TokenTag::Enum);
-        ident_map.insert("Err", TokenTag::Enum);
-        ident_map.insert("self", TokenTag::SelfToken);
-        ident_map.insert("Self", TokenTag::SelfToken);
-        ident_map.insert("asm", TokenTag::Macro);
-        ident_map.insert("DISK_NUMBER_OFFSET", TokenTag::LitNum);
-        ident_map.insert("DiskAddressPacket", TokenTag::Type);
-        // ident_map.insert("Ok", TokenTag::Enum);
+        ident_map.insert("Ok", Tag::Enum);
+        ident_map.insert("Some", Tag::Enum);
+        ident_map.insert("None", Tag::Enum);
+        ident_map.insert("Err", Tag::Enum);
+        ident_map.insert("self", Tag::SelfToken);
+        ident_map.insert("Self", Tag::SelfToken);
+        ident_map.insert("asm", Tag::Macro);
+        ident_map.insert("DISK_NUMBER_OFFSET", Tag::LitNum);
+        ident_map.insert("DiskAddressPacket", Tag::Type);
+        ident_map.insert("size_of", Tag::Enum);
+        ident_map.insert("PAGE_DIRECTORY_ENTRIES", Tag::LitNum);
+        ident_map.insert("Ring0", Tag::Enum);
+        ident_map.insert("global_descriptor_table_register", Tag::Variable);
+        ident_map.insert("ExtendedRead", Tag::Enum);
+        ident_map.insert("DISK", Tag::Enum);
+        ident_map.insert("disk_number", Tag::Variable);
+        let mut highlighter = RustHighlighter::new(ident_map);
 
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
-        for item in &mut book.sections {
+        book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 let registered_blocks =
-                    self.register_codeblock(ctx, chapter, &block_pat, ident_map);
+                    self.register_chapter(ctx, chapter, &block_pat, &mut highlighter);
 
                 Self::write_codeblock(chapter, registered_blocks);
             }
-        }
+        });
         Ok(book)
     }
 }
 
 impl RustHighlighterPreprocessor {
-    fn register_codeblock(
+    fn register_chapter(
         &self,
         ctx: &PreprocessorContext,
         chapter: &Chapter,
         pattern: &Regex,
-        ident_map: IdentMap,
+        highlighter: &mut RustHighlighter,
     ) -> BTreeMap<usize, (usize, String)> {
         const GROUP_FULL: usize = 0;
         const GROUP_FEATURES: usize = 1;
@@ -66,14 +75,11 @@ impl RustHighlighterPreprocessor {
                 Some(m) => m,
                 None => continue,
             };
-
             let features = self.whichlang_features(ctx, caps.get(GROUP_FEATURES));
-
             let code = code_match.as_str();
-            let highlighted = RustHighlighter::highlight(code, ident_map);
+            let highlighted = highlighter.highlight(code);
             let html =
                 format!("<pre><code class=\"language-hlrs {features}\">{highlighted}</code></pre>");
-
             chap_replacement.insert(full.start(), (full.end(), html));
         }
         chap_replacement

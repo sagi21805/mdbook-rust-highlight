@@ -1,48 +1,107 @@
 use crate::{
     highlighter::error::IdentificationError,
     preprocessor::IdentMap,
-    tokens::{PathToken, SpannedToken, TokenTag},
+    tokens::{SpannedToken, Tag},
 };
 use regex::Regex;
 use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
-use syn::{File, Ident, spanned::Spanned, visit::Visit};
+use syn::{File, Ident, punctuated::Punctuated, spanned::Spanned, visit::Visit};
 
 pub mod attr;
 pub mod error;
 pub mod expr;
 pub mod generics;
+pub mod global;
 pub mod item;
+pub mod macro_parsers;
 pub mod pat;
 pub mod path;
 pub mod statement;
+pub mod structure;
 pub mod ty;
 pub mod visit;
 
-pub struct RustHighlighter<'a, 'ast> {
-    token_set: BTreeSet<SpannedToken>,
-    unidentified: HashMap<usize, PathToken<'ast>>,
-    ident_map: IdentMap<'a>,
+pub trait Register: Sized {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>);
+
+    fn register(&self, h: &mut RustHighlighter) {
+        self.register_as(h, None);
+    }
 }
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn highlight(code: &str, ident_map: IdentMap<'a>) -> String {
-        let mut highlighter = Self::new(ident_map);
+impl<T: Register> Register for Vec<T> {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        for item in self {
+            item.register_as(h, _tag);
+        }
+    }
+}
 
-        // let code = highlighter.register_boring(code);
+impl<T: Register> Register for Option<T> {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        if let Some(token) = self {
+            token.register_as(h, _tag);
+        }
+    }
+}
+
+impl<T: Register> Register for Box<T> {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        self.as_ref().register_as(h, _tag);
+    }
+}
+
+impl<T: Register, P> Register for Punctuated<T, P> {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        for item in self {
+            item.register_as(h, _tag);
+        }
+    }
+}
+pub struct RustHighlighter {
+    token_set: BTreeSet<SpannedToken>,
+    unidentified: HashMap<usize, Ident>,
+    ident_map: IdentMap,
+}
+
+impl RustHighlighter {
+    pub fn highlight(&mut self, code: &str) -> String {
+        let code = self.register_boring(code);
 
         let mut output = Rope::from_str(&code);
-
         let syntax_tree: File =
             syn::parse_str(&code).expect(&format!("Failed to parse Rust code\n{}", code));
-
-        highlighter.visit_file(&syntax_tree);
-        highlighter.register_comments(&code);
-        highlighter.write_tokens(&mut output);
+        self.visit_file(&syntax_tree);
+        self.register_comments(&code);
+        self.write_tokens(&mut output);
 
         output.to_string()
     }
 
+    fn register(&mut self, token: &impl Register) {
+        token.register(self);
+    }
+
+    fn register_as(&mut self, token: &impl Register, _tag: Option<Tag>) {
+        token.register_as(self, _tag);
+    }
+
+    pub fn register_at(&mut self, start: usize, stop: usize, t: Option<Tag>) {
+        self.token_set.insert(SpannedToken {
+            kind: t,
+            start,
+            end: stop,
+        });
+        self.token_set.insert(SpannedToken {
+            kind: Some(Tag::EndOfToken),
+            start: stop,
+            end: usize::MAX,
+        });
+    }
+}
+
+impl RustHighlighter {
     pub(crate) fn write_tokens(&mut self, output: &mut Rope) {
         let mut tok_offset: usize = 0;
         let mut set_iterator = self.token_set.iter();
@@ -51,11 +110,10 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 Ok(identified) => identified,
                 Err(IdentificationError::AlreadyIdentified) => token.clone(),
                 Err(IdentificationError::NoIdentificationNeeded) => {
-                    let _ = set_iterator.next();
                     continue;
                 }
             };
-            let tag = identified.kind.to_string();
+            let tag = identified.kind.unwrap().to_string();
             output.insert(identified.start + tok_offset, tag.as_str());
             tok_offset += tag.len();
         }
@@ -63,8 +121,8 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         self.unidentified.clear();
     }
 
-    pub(crate) fn remember_ident(&mut self, ident: &(impl Spanned + ToString), token: TokenTag) {
-        self.ident_map.insert(ident.to_string().leak(), token);
+    pub(crate) fn remember_as(&mut self, ident: &(impl Spanned + ToString), t: Tag) {
+        self.ident_map.insert(ident.to_string().leak(), t);
     }
 
     /// Returns the identified token for ones the need identification, and for all others, None.
@@ -73,72 +131,55 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
         token: &SpannedToken,
     ) -> Result<SpannedToken, IdentificationError> {
         match token.kind {
-            TokenTag::NeedIdentification => {
+            None => {
                 let unidentified = self.unidentified.get(&token.start);
                 let ident_string = match unidentified {
-                    Some(segment) => segment.ident().to_string(),
+                    Some(segment) => segment,
                     None => return Err(IdentificationError::NoIdentificationNeeded),
-                };
+                }
+                .to_string();
 
                 let identified = self
                     .ident_map
                     .get(ident_string.as_str())
                     .cloned()
-                    .unwrap_or(TokenTag::Ident);
+                    .unwrap_or(Tag::Type);
 
                 Ok(SpannedToken {
-                    kind: identified,
+                    kind: Some(identified),
                     start: token.start,
                     end: token.end,
                 })
             }
-            _ => Err(IdentificationError::AlreadyIdentified),
+            Some(_) => Err(IdentificationError::AlreadyIdentified),
         }
     }
 
-    /// Extract a span position in the rope.
-    ///
-    /// returns the (start_idx, end_idx) of the span
-    pub(crate) fn span_position(span: &impl Spanned) -> (usize, usize) {
-        // lines are 1 indexed instead of zero.
-        let span = span.span().byte_range();
-        (span.start, span.end)
+    pub(crate) fn register_token(&mut self, token: &impl Spanned, _tag: Option<Tag>) {
+        let range = token.span().byte_range();
+        self.register_at(range.start, range.end, _tag);
     }
 
-    pub(crate) fn register_tag_at_index(&mut self, start: usize, end: usize, tag: TokenTag) {
-        self.token_set.insert(SpannedToken {
-            kind: tag,
-            start,
-            end,
-        });
-        self.token_set.insert(SpannedToken {
-            kind: TokenTag::EndOfToken,
-            start: end,
-            end: usize::MAX,
-        });
+    pub(crate) fn register_ident(&mut self, token: &(impl Spanned + ToString), _tag: Option<Tag>) {
+        self.register_token(token, _tag);
+        if let Some(tag) = _tag {
+            self.remember_as(token, tag);
+        } else {
+            unimplemented!("Use register unidentified instead, later will require only TokenTag")
+        }
     }
 
-    pub(crate) fn register_tag(&mut self, token: &impl Spanned, tag: TokenTag) {
-        let (start, end) = Self::span_position(&token.span());
-        self.register_tag_at_index(start, end, tag);
-    }
-
-    pub(crate) fn register_ident(&mut self, ident: &Ident, tag: TokenTag) {
-        self.remember_ident(ident, tag);
-        self.register_tag(ident, tag);
-    }
-
-    pub(crate) fn register_unidentified(&mut self, token: PathToken<'ast>) {
-        self.register_tag(&token.ident(), TokenTag::NeedIdentification);
+    pub(crate) fn register_unidentified(&mut self, token: &Ident) {
+        self.register_token(token, None);
         self.unidentified
-            .insert(token.span().byte_range().start, token);
+            .insert(token.span().byte_range().start, token.clone());
     }
 
     pub(crate) fn register_comments(&mut self, code: &str) {
-        let comment_regex: Regex = Regex::new(r"\/\/\/?[^\n]*").unwrap();
+        let comment_regex: Regex = Regex::new(r"\/\/\/?.*\n?").unwrap();
         for comment in comment_regex.captures_iter(code) {
             let m = comment.get(0).unwrap();
-            self.register_tag_at_index(m.start(), m.end(), TokenTag::Comment);
+            self.register_at(m.start(), m.end(), Some(Tag::Comment));
         }
     }
 
@@ -155,7 +196,7 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
                 let start = string_offset + hash_position;
                 let end = string_offset + line.len() - 2;
                 output.push_str(after_hash);
-                self.register_tag_at_index(start, end, TokenTag::Boring);
+                self.register_at(start, end, Some(Tag::Boring));
             } else {
                 output.push_str(line);
             }
@@ -165,8 +206,8 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    fn new(ident_map: IdentMap<'a>) -> Self {
+impl RustHighlighter {
+    pub fn new(ident_map: IdentMap) -> Self {
         Self {
             token_set: BTreeSet::new(),
             unidentified: HashMap::new(),

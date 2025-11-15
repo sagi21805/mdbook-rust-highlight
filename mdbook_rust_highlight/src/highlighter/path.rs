@@ -1,39 +1,39 @@
-use mdbook_rust_highlight_derive::add_try_method;
+use crate::{
+    highlighter::{Register, RustHighlighter},
+    tokens::Tag,
+};
 use syn::{Path, PathArguments, PathSegment, QSelf};
 
-use crate::{highlighter::RustHighlighter, tokens::TokenTag};
-
-impl<'a, 'ast> RustHighlighter<'a, 'ast> {
-    pub(crate) fn register_path_argument(&mut self, token: &'ast PathArguments) {
-        match token {
-            PathArguments::Parenthesized(token) => {
-                self.register_parenthesized_arg(token);
-            }
-            PathArguments::AngleBracketed(token) => {
-                self.register_angle_brackets_arg(token);
-            }
+impl Register for PathArguments {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        match self {
+            PathArguments::Parenthesized(token) => h.register_as(token, _tag),
+            PathArguments::AngleBracketed(token) => h.register_as(token, _tag),
             PathArguments::None => {}
         }
     }
+}
 
-    pub(crate) fn register_path_segment(
-        &mut self,
-        token: &'ast PathSegment,
-        tag: Option<TokenTag>,
-    ) {
-        self.register_path_argument(&token.arguments);
-        match tag {
-            None => self.register_unidentified(token.into()),
-            Some(tag) => self.register_ident(&token.ident, tag),
+impl Register for PathSegment {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.arguments);
+
+        if let None = _tag {
+            h.register_unidentified(&self.ident);
+        } else {
+            h.register_ident(&self.ident, _tag);
         }
     }
+}
 
-    #[add_try_method]
-    pub(crate) fn register_qself(&mut self, token: &'ast QSelf) {
-        self.register_type(&token.ty);
-        self.try_register_keyword_tag(token.as_token.as_ref());
+impl Register for QSelf {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.ty);
+        h.try_register_keyword_tag(self.as_token.as_ref());
     }
+}
 
+impl Register for Path {
     /// Register a path token
     ///
     /// # Parameters
@@ -41,15 +41,23 @@ impl<'a, 'ast> RustHighlighter<'a, 'ast> {
     /// - `token:` - The path segment
     /// - `last:` - Optional tag to put for the last item of the path.
     ///
-    /// TODO ADD DOCUMENTATION AND PLAN WHAT HAPPENS IF NONE IS GIVEN
-    pub(crate) fn register_path(&mut self, token: &'ast Path, last_tag: Option<TokenTag>) {
-        let mut segment_iter = token.segments.iter().rev();
+    /// If last tag is not known, put need identification
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        let mut segment_iter = self.segments.iter().rev();
         let last_segment = segment_iter.next();
         for segment in segment_iter {
-            self.register_path_segment(segment, None);
+            if segment.ident.to_string() == "Self" {
+                h.register_keyword_tag(segment);
+            } else {
+                h.register_segment_tag(segment);
+            }
         }
         if let Some(seg) = last_segment {
-            self.register_path_segment(seg, last_tag);
+            if let Some(known) = h.ident_map.get(seg.ident.to_string().as_str()) {
+                h.register_as(seg, Some(known.clone()));
+            } else {
+                h.register_as(seg, _tag);
+            }
         }
     }
 }
