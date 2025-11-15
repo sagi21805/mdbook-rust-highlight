@@ -141,7 +141,9 @@ impl Register for Macro {
             match segment.ident.to_string().as_str() {
                 "macro_rules" => macro_tag = Tag::Keyword,
                 "asm" => h.register_as(&self.tokens, Some(Tag::MacroAsm)),
-                "flag" | "println" | "eprintln" | "print" => {
+                "flag" | "println" | "eprintln" | "print" | "dbg" | "format" | "vec"
+                | "matches" | "panic" | "assert" | "assert_eq" | "include_str" | "concat"
+                | "stringify" | "env" | "option_env" => {
                     h.register_as(&self.tokens, Some(Tag::MacroExpr))
                 }
                 _ => {}
