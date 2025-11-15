@@ -1,8 +1,8 @@
 use syn::{
     Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprConst, ExprField,
     ExprForLoop, ExprIf, ExprLit, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen,
-    ExprPath, ExprReference, ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe,
-    Lit, Member, spanned::Spanned,
+    ExprPath, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary,
+    ExprUnsafe, Lit, Member, spanned::Spanned,
 };
 
 use crate::{
@@ -42,7 +42,7 @@ impl Register for Expr {
             // Expr::Range(token) => h.register_as(token, _tag),
             // Expr::RawAddr(token) => h.register_as(token, _tag),
             Expr::Reference(token) => h.register_as(token, _tag),
-            // Expr::Repeat(token) => h.register_as(token, _tag),
+            Expr::Repeat(token) => h.register_as(token, _tag),
             Expr::Return(token) => h.register_as(token, _tag),
             Expr::Struct(token) => h.register_as(token, _tag),
             Expr::Try(token) => h.register_as(token, _tag),
@@ -54,6 +54,14 @@ impl Register for Expr {
             Expr::Unsafe(token) => h.register_as(token, _tag),
             _ => {}
         }
+    }
+}
+
+impl Register for ExprRepeat {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.expr);
+        h.register(&self.len);
     }
 }
 
@@ -142,6 +150,7 @@ impl Register for ExprMethodCall {
         h.register(&self.attrs);
         h.register(&self.receiver);
         h.register_function_tag(&self.method);
+        h.register(&self.turbofish);
         h.register(&self.args);
     }
 }
