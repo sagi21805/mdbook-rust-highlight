@@ -1,7 +1,7 @@
 use syn::{AttrStyle, Attribute, Meta, MetaNameValue};
 
 use crate::{
-    highlighter::{Register, RustHighlighter, macro_parsers::ident_list::IdentList},
+    highlighter::{Register, RustHighlighter, macro_parsers::ident_list::ExprList},
     tokens::Tag,
 };
 
@@ -26,11 +26,11 @@ impl Register for Attribute {
                     } else {
                         h.register_as(&list.path, Some(Tag::Const));
                     }
-                    let ident_list = syn::parse2::<IdentList>(list.tokens.clone());
+                    let ident_list = syn::parse2::<ExprList>(list.tokens.clone());
                     match ident_list {
                         Ok(list) => {
-                            for item in &list.idents {
-                                h.register_type_tag(item);
+                            for item in &list.exprs {
+                                h.register(item);
                             }
                         }
                         _ => {}
