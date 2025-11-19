@@ -4,7 +4,7 @@ use syn::{
 };
 
 use crate::{
-    highlighter::{Register, RustHighlighter},
+    highlighter::{Register, RustHighlighter, macro_parsers::remove_hash},
     tokens::Tag,
 };
 
@@ -127,7 +127,7 @@ impl Register for ItemMacro {
         if let Some(name) = self.ident.as_ref() {
             h.register_ident(name.into(), Some(Tag::Macro));
             match name.to_string().as_str() {
-                "table_entry_flags" => h.register_as(&self.mac.tokens, Some(Tag::MacroCode)),
+                "table_entry_flags" => h.register_as(&self.mac.tokens, Some(Tag::MacroRulesCode)),
                 _ => {}
             }
         }
@@ -144,8 +144,11 @@ impl Register for Macro {
                 "asm" => h.register_as(&self.tokens, Some(Tag::MacroAsm)),
                 "flag" | "println" | "eprintln" | "print" | "dbg" | "format" | "vec"
                 | "matches" | "panic" | "assert" | "assert_eq" | "include_str" | "concat"
-                | "stringify" | "env" | "option_env" => {
+                | "stringify" | "env" | "option_env" | "parse_macro_input" | "format_ident" => {
                     h.register_as(&self.tokens, Some(Tag::MacroExpr))
+                }
+                "quote" => {
+                    h.register_as(&remove_hash(self.tokens.clone()), Some(Tag::MacroCode));
                 }
                 _ => {}
             }

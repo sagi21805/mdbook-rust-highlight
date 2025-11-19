@@ -31,6 +31,7 @@ pub enum Tag {
     MacroIdent,
     MacroExpr,
     MacroCode,
+    MacroRulesCode,
 }
 
 impl ToString for Tag {
