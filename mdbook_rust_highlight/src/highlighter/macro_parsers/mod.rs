@@ -1,6 +1,6 @@
 use core::panic;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Group, TokenStream};
 use syn::{File, visit::Visit};
 
 use crate::{
@@ -30,20 +30,29 @@ pub fn remove_hash(input: TokenStream) -> TokenStream {
     while let Some(tt) = iter.next() {
         match tt {
             TokenTree::Punct(ref p) if p.as_char() == '#' => {
-                let next_tt = iter
-                    .next()
-                    .expect("# should not be at the end of the stream");
-
-                if let TokenTree::Ident(ident) = next_tt {
-                    output.extend([TokenTree::Ident(ident)]);
+                // look ahead
+                if let Some(next_tt) = iter.next() {
+                    if let TokenTree::Ident(_) = next_tt {
+                        // skip the # and keep only the Ident
+                        output.extend([next_tt]);
+                    } else {
+                        // keep both if next is not ident
+                        output.extend([tt, next_tt]);
+                    }
                 } else {
-                    panic!("# should be followed by an Ident")
+                    // # at the end
+                    output.extend([tt]);
                 }
+            }
+            TokenTree::Group(g) => {
+                // recursively process the group content
+                let new_stream = remove_hash(g.stream());
+                let new_group = Group::new(g.delimiter(), new_stream);
+                output.extend([TokenTree::Group(new_group)]);
             }
             other => output.extend([other]),
         }
     }
-
     output
 }
 
