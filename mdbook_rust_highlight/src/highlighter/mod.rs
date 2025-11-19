@@ -69,14 +69,11 @@ impl RustHighlighter {
     pub fn highlight(&mut self, code: &str) -> String {
         let code = self.register_boring(code);
 
-        let mut output = Rope::from_str(&code);
         let syntax_tree: File =
             syn::parse_str(&code).expect(&format!("Failed to parse Rust code\n{}", code));
         self.visit_file(&syntax_tree);
         self.register_comments(&code);
-        self.write_tokens(&mut output);
-
-        output.to_string()
+        self.write_tokens(code)
     }
 
     fn register(&mut self, token: &impl Register) {
@@ -102,7 +99,9 @@ impl RustHighlighter {
 }
 
 impl RustHighlighter {
-    pub(crate) fn write_tokens(&mut self, output: &mut Rope) {
+    pub(crate) fn write_tokens(&mut self, code: String) -> String {
+        let html_corrected = code; //.replace("<", "&lt;").replace(">", "&gt;");
+        let mut output = Rope::from_str(&html_corrected);
         let mut tok_offset: usize = 0;
         let mut set_iterator = self.token_set.iter();
         while let Some(token) = set_iterator.next() {
@@ -119,6 +118,7 @@ impl RustHighlighter {
         }
         self.token_set.clear();
         self.unidentified.clear();
+        output.to_string()
     }
 
     pub(crate) fn remember_as(&mut self, ident: &(impl Spanned + ToString), t: Tag) {

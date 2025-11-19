@@ -1,4 +1,6 @@
-use syn::{ReturnType, Type, TypeImplTrait, TypePath, TypePtr, TypeReference, TypeTuple};
+use syn::{
+    ReturnType, Type, TypeArray, TypeImplTrait, TypePath, TypePtr, TypeReference, TypeTuple,
+};
 
 use crate::{
     highlighter::{Register, RustHighlighter},
@@ -8,6 +10,7 @@ use crate::{
 impl Register for Type {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
+            Type::Array(token) => h.register_as(token, _tag),
             Type::Reference(token) => h.register_as(token, _tag),
             Type::Path(token) => h.register_as(token, _tag),
             Type::Tuple(token) => h.register_as(token, _tag),
@@ -15,6 +18,13 @@ impl Register for Type {
             Type::ImplTrait(token) => h.register_as(token, _tag),
             _ => {}
         }
+    }
+}
+
+impl Register for TypeArray {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.elem);
+        h.register(&self.len);
     }
 }
 

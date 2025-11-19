@@ -82,6 +82,7 @@ impl Register for ItemEnum {
         // TODO REGISTER GENERICS AND FIELDS
         for variant in &self.variants {
             h.register_enum_tag(&variant.ident);
+            h.register(&variant.attrs);
             if let Some((_, discriminant)) = &variant.discriminant {
                 h.register(discriminant);
             }
