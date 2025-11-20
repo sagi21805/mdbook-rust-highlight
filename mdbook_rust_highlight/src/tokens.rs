@@ -2,10 +2,12 @@ use std::cmp::{Ordering, Reverse};
 
 use crate::highlighter::RustHighlighter;
 use mdbook_rust_highlight_derive::{RegisterVariants, add_try_method};
-use strum_macros::AsRefStr;
+use strum_macros::{AsRefStr, EnumString};
 use syn::Ident;
 
-#[derive(AsRefStr, RegisterVariants, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
+#[derive(
+    AsRefStr, EnumString, RegisterVariants, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy,
+)]
 pub enum Tag {
     Keyword,
     Variable,

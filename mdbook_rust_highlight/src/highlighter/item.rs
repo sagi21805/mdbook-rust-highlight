@@ -184,7 +184,7 @@ impl Register for ImplItem {
                 h.register(&token.block);
             }
             ImplItem::Macro(token) => {
-                h.register(&token.mac);
+                h.register_as(&token.mac, Some(Tag::Macro));
             }
             ImplItem::Type(_token) => {}
             ImplItem::Verbatim(_) => {}

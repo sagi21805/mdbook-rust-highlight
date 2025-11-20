@@ -1,13 +1,17 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+    str::FromStr,
+};
 
 use crate::{highlighter::RustHighlighter, tokens::Tag};
 use mdbook::{
-    BookItem,
+    BookItem, Config,
     book::{Book, Chapter},
     preprocess::{Preprocessor, PreprocessorContext},
 };
 use regex::Regex;
 use ropey::Rope;
+use syn::Ident;
 
 pub struct RustHighlighterPreprocessor;
 
@@ -21,7 +25,10 @@ impl Preprocessor for RustHighlighterPreprocessor {
         "rust-highlight"
     }
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
-        let mut ident_map: IdentMap = HashMap::new();
+        let mut ident_map = self
+            .process_configuration(ctx)
+            .expect("Invalid Configuration");
+
         // Maybe turn into an initialize function.
         ident_map.insert("Ok", Tag::Enum);
         ident_map.insert("Some", Tag::Enum);
@@ -29,16 +36,7 @@ impl Preprocessor for RustHighlighterPreprocessor {
         ident_map.insert("Err", Tag::Enum);
         ident_map.insert("self", Tag::SelfToken);
         ident_map.insert("Self", Tag::SelfToken);
-        ident_map.insert("asm", Tag::Macro);
-        ident_map.insert("DISK_NUMBER_OFFSET", Tag::LitNum);
-        ident_map.insert("DiskAddressPacket", Tag::Type);
-        ident_map.insert("size_of", Tag::Enum);
-        ident_map.insert("PAGE_DIRECTORY_ENTRIES", Tag::LitNum);
-        ident_map.insert("Ring0", Tag::Enum);
-        ident_map.insert("global_descriptor_table_register", Tag::Variable);
-        ident_map.insert("ExtendedRead", Tag::Enum);
-        ident_map.insert("DISK", Tag::Enum);
-        ident_map.insert("disk_number", Tag::Variable);
+
         let mut highlighter = RustHighlighter::new(ident_map);
 
         // Regex matches entire Rust code blocks including fences
@@ -119,5 +117,20 @@ impl RustHighlighterPreprocessor {
             feature_string.push_str(RUST_ICON_URL);
         }
         return feature_string;
+    }
+
+    fn process_configuration(&self, ctx: &PreprocessorContext) -> Option<IdentMap> {
+        let cfg = ctx.config.get(&format!("preprocessor.{}", self.name()))?;
+        let mapping = cfg.get("mapping")?.as_table()?;
+        let ident_map = mapping
+            .iter()
+            .map(|(k, v)| {
+                let leaked: &'static str = k.clone().leak();
+                let tag =
+                    Tag::from_str(v.as_str().expect("Tag in not string")).expect("Tag is no valid");
+                (leaked, tag)
+            })
+            .collect::<IdentMap>();
+        Some(ident_map)
     }
 }

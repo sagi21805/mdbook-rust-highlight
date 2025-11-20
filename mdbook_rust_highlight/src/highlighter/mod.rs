@@ -71,6 +71,7 @@ impl RustHighlighter {
 
         let syntax_tree: File =
             syn::parse_str(&code).expect(&format!("Failed to parse Rust code\n{}", code));
+
         self.visit_file(&syntax_tree);
         self.register_comments(&code);
         self.write_tokens(code)
