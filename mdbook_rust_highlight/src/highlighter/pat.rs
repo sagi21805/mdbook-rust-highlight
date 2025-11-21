@@ -1,4 +1,6 @@
-use syn::{Pat, PatIdent, PatOr, PatReference, PatTuple, PatTupleStruct, PatType};
+use syn::{
+    FieldPat, Pat, PatIdent, PatOr, PatReference, PatStruct, PatTuple, PatTupleStruct, PatType,
+};
 
 use crate::{
     highlighter::{Register, RustHighlighter},
@@ -16,8 +18,26 @@ impl Register for Pat {
             Pat::TupleStruct(token) => h.register_as(token, _tag),
             Pat::Or(token) => h.register_as(token, _tag),
             Pat::Const(token) => h.register_as(token, _tag),
+            Pat::Struct(token) => h.register_as(token, _tag),
             _ => {}
         }
+    }
+}
+
+impl Register for FieldPat {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.member);
+        h.register(&self.pat);
+    }
+}
+
+impl Register for PatStruct {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.qself);
+        h.register_as(&self.path, Some(Tag::Type));
+        h.register(&self.fields);
     }
 }
 

@@ -48,9 +48,9 @@ impl ToString for Tag {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct SpannedToken {
-    pub(crate) kind: Option<Tag>,
     pub(crate) start: usize,
     pub(crate) end: usize,
+    pub(crate) kind: Option<Tag>,
 }
 
 impl PartialOrd for SpannedToken {

@@ -18,10 +18,10 @@ impl Register for PathSegment {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.arguments);
 
-        if let None = _tag {
-            h.register_unidentified(&self.ident);
+        if let Some(tag) = _tag {
+            h.register_ident(&self.ident, Some(tag));
         } else {
-            h.register_ident(&self.ident, _tag);
+            h.register_unidentified_ident(&self.ident);
         }
     }
 }
@@ -52,12 +52,10 @@ impl Register for Path {
                 h.register_segment_tag(segment);
             }
         }
-        if let Some(seg) = last_segment {
-            if let Some(known) = h.ident_map.get(seg.ident.to_string().as_str()) {
-                h.register_as(seg, Some(known.clone()));
-            } else {
-                h.register_as(seg, _tag);
-            }
+
+        let known = h.tracer.get(self);
+        if let (Some(tag), Some(seg)) = (known, last_segment) {
+            h.register_as(seg, Some(tag));
         }
     }
 }

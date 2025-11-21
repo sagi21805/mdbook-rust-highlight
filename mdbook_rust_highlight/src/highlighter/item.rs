@@ -80,6 +80,7 @@ impl Register for ItemEnum {
         h.register_keyword_tag(&self.enum_token);
         h.register_type_tag(&self.ident);
         // TODO REGISTER GENERICS AND FIELDS
+
         for variant in &self.variants {
             h.register_enum_tag(&variant.ident);
             h.register(&variant.attrs);
@@ -111,7 +112,7 @@ impl Register for UseTree {
                 h.register(&token.tree);
             }
             UseTree::Name(token) => {
-                h.register_unidentified((&token.ident).into());
+                h.register_unidentified_ident((&token.ident).into());
             }
             UseTree::Rename(token) => {
                 h.register_segment_tag(&token.ident);

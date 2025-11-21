@@ -3,7 +3,13 @@ use std::{
     str::FromStr,
 };
 
-use crate::{highlighter::RustHighlighter, tokens::Tag};
+use crate::{
+    highlighter::{
+        RustHighlighter,
+        path_tracer::{PathTracer, SearchStep},
+    },
+    tokens::Tag,
+};
 use mdbook::{
     BookItem, Config,
     book::{Book, Chapter},
@@ -25,19 +31,19 @@ impl Preprocessor for RustHighlighterPreprocessor {
         "rust-highlight"
     }
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
-        let mut ident_map = self
-            .process_configuration(ctx)
-            .expect("Invalid Configuration");
+        let mut tracer = PathTracer::new();
+
+        self.process_configuration(ctx, &mut tracer.0[0]);
 
         // Maybe turn into an initialize function.
-        ident_map.insert("Ok", Tag::Enum);
-        ident_map.insert("Some", Tag::Enum);
-        ident_map.insert("None", Tag::Enum);
-        ident_map.insert("Err", Tag::Enum);
-        ident_map.insert("self", Tag::SelfToken);
-        ident_map.insert("Self", Tag::SelfToken);
+        tracer.0[0].insert("Ok", SearchStep::Tag(Tag::Enum));
+        tracer.0[0].insert("Some", SearchStep::Tag(Tag::Enum));
+        tracer.0[0].insert("None", SearchStep::Tag(Tag::Enum));
+        tracer.0[0].insert("Err", SearchStep::Tag(Tag::Enum));
+        tracer.0[0].insert("self", SearchStep::Tag(Tag::Keyword));
+        tracer.0[0].insert("Self", SearchStep::Tag(Tag::Keyword));
 
-        let mut highlighter = RustHighlighter::new(ident_map);
+        let mut highlighter = RustHighlighter::new(tracer);
 
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
@@ -119,18 +125,24 @@ impl RustHighlighterPreprocessor {
         return feature_string;
     }
 
-    fn process_configuration(&self, ctx: &PreprocessorContext) -> Option<IdentMap> {
-        let cfg = ctx.config.get(&format!("preprocessor.{}", self.name()))?;
-        let mapping = cfg.get("mapping")?.as_table()?;
-        let ident_map = mapping
-            .iter()
-            .map(|(k, v)| {
-                let leaked: &'static str = k.clone().leak();
-                let tag =
-                    Tag::from_str(v.as_str().expect("Tag in not string")).expect("Tag is no valid");
-                (leaked, tag)
-            })
-            .collect::<IdentMap>();
-        Some(ident_map)
+    fn process_configuration(
+        &self,
+        ctx: &PreprocessorContext,
+        map: &mut HashMap<&'static str, SearchStep>,
+    ) {
+        let cfg = ctx
+            .config
+            .get(&format!("preprocessor.{}", self.name()))
+            .expect("No configuration provided for preprocessor");
+        if let Some(v) = cfg.get("mapping") {
+            if let Some(mapping) = v.as_table() {
+                for (k, v) in mapping {
+                    let leaked: &'static str = k.clone().leak();
+                    let tag = Tag::from_str(v.as_str().expect("Tag in not string"))
+                        .expect("Tag is no valid");
+                    map.insert(leaked, SearchStep::Tag(tag));
+                }
+            }
+        }
     }
 }

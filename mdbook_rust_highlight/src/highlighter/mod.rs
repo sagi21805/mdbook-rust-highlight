@@ -1,12 +1,11 @@
 use crate::{
-    highlighter::error::IdentificationError,
-    preprocessor::IdentMap,
+    highlighter::{error::IdentificationError, path_tracer::PathTracer},
     tokens::{SpannedToken, Tag},
 };
 use regex::Regex;
 use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
-use syn::{File, Ident, punctuated::Punctuated, spanned::Spanned, visit::Visit};
+use syn::{File, Ident, Path, PathSegment, punctuated::Punctuated, spanned::Spanned, visit::Visit};
 
 pub mod attr;
 pub mod error;
@@ -17,6 +16,7 @@ pub mod item;
 pub mod macro_parsers;
 pub mod pat;
 pub mod path;
+pub mod path_tracer;
 pub mod statement;
 pub mod structure;
 pub mod ty;
@@ -61,8 +61,8 @@ impl<T: Register, P> Register for Punctuated<T, P> {
 }
 pub struct RustHighlighter {
     token_set: BTreeSet<SpannedToken>,
-    unidentified: HashMap<usize, Ident>,
-    ident_map: IdentMap,
+    unidentified: HashMap<usize, Path>,
+    tracer: PathTracer,
 }
 
 impl RustHighlighter {
@@ -118,12 +118,11 @@ impl RustHighlighter {
             tok_offset += tag.len();
         }
         self.token_set.clear();
-        self.unidentified.clear();
         output.to_string()
     }
 
-    pub(crate) fn remember_as(&mut self, ident: &(impl Spanned + ToString), t: Tag) {
-        self.ident_map.insert(ident.to_string().leak(), t);
+    pub(crate) fn remember_as(&mut self, p: &Path, tag: Tag) {
+        self.tracer.map(p, tag);
     }
 
     /// Returns the identified token for ones the need identification, and for all others, None.
@@ -134,17 +133,12 @@ impl RustHighlighter {
         match token.kind {
             None => {
                 let unidentified = self.unidentified.get(&token.start);
-                let ident_string = match unidentified {
+                let p = match unidentified {
                     Some(segment) => segment,
                     None => return Err(IdentificationError::NoIdentificationNeeded),
-                }
-                .to_string();
+                };
 
-                let identified = self
-                    .ident_map
-                    .get(ident_string.as_str())
-                    .cloned()
-                    .unwrap_or(Tag::Type);
+                let identified = self.tracer.get(p).unwrap_or(Tag::Type);
 
                 Ok(SpannedToken {
                     kind: Some(identified),
@@ -161,19 +155,40 @@ impl RustHighlighter {
         self.register_at(range.start, range.end, _tag);
     }
 
-    pub(crate) fn register_ident(&mut self, token: &(impl Spanned + ToString), _tag: Option<Tag>) {
-        self.register_token(token, _tag);
+    pub(crate) fn register_ident(&mut self, token: &Ident, _tag: Option<Tag>) {
         if let Some(tag) = _tag {
-            self.remember_as(token, tag);
-        } else {
-            unimplemented!("Use register unidentified instead, later will require only TokenTag")
+            self.register_token(token, Some(tag));
+            let mut segments = Punctuated::new();
+            segments.push(PathSegment {
+                ident: token.clone(),
+                arguments: syn::PathArguments::None,
+            });
+
+            let p = Path {
+                leading_colon: None,
+                segments,
+            };
+
+            self.remember_as(&p, tag);
         }
     }
 
-    pub(crate) fn register_unidentified(&mut self, token: &Ident) {
+    pub(crate) fn register_unidentified_ident(&mut self, token: &Ident) {
         self.register_token(token, None);
-        self.unidentified
-            .insert(token.span().byte_range().start, token.clone());
+
+        let mut segment = Punctuated::new();
+        segment.push(PathSegment {
+            ident: token.clone(),
+            arguments: syn::PathArguments::None,
+        });
+
+        self.unidentified.insert(
+            token.span().byte_range().start,
+            Path {
+                leading_colon: None,
+                segments: segment,
+            },
+        );
     }
 
     pub(crate) fn register_comments(&mut self, code: &str) {
@@ -208,11 +223,11 @@ impl RustHighlighter {
 }
 
 impl RustHighlighter {
-    pub fn new(ident_map: IdentMap) -> Self {
+    pub fn new(tracer: PathTracer) -> Self {
         Self {
             token_set: BTreeSet::new(),
             unidentified: HashMap::new(),
-            ident_map,
+            tracer,
         }
     }
 }
