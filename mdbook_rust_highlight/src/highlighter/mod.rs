@@ -101,56 +101,33 @@ impl<'a> RustHighlighter<'a> {
 
 impl<'a> RustHighlighter<'a> {
     pub(crate) fn write_tokens(&mut self, code: String) -> String {
-        let html_corrected = code; //.replace("<", "&lt;").replace(">", "&gt;");
-        let mut output = Rope::from_str(&html_corrected);
+        let mut output = Rope::from_str(&code);
         let mut tok_offset: usize = 0;
         let mut set_iterator = self.token_set.iter();
+
+        let re_global = Regex::new(r"^[A-Z]+(?:_[A-Z]+)*$").unwrap();
+
         while let Some(token) = set_iterator.next() {
-            let identified = match self.identify_token(&token) {
-                Ok(identified) => identified,
-                Err(IdentificationError::AlreadyIdentified) => token.clone(),
-                Err(IdentificationError::NoIdentificationNeeded) => {
-                    continue;
-                }
-            };
-            let tag = identified.kind.unwrap().to_string();
-            output.insert(identified.start + tok_offset, tag.as_str());
+            let tag = token
+                .kind
+                .unwrap_or_else(|| {
+                    if re_global.is_match(&code[token.start..token.end]) {
+                        Tag::Const
+                    } else {
+                        Tag::Type
+                    }
+                })
+                .to_string();
+            output.insert(token.start + tok_offset, tag.as_str());
             tok_offset += tag.len();
         }
         self.token_set.clear();
+        self.unidentified.clear();
         output.to_string()
     }
 
     pub(crate) fn remember_as(&mut self, p: &Path, tag: Tag) {
         self.tracer.map(p, tag);
-    }
-
-    /// Returns the identified token for ones the need identification, and for all others, None.
-    pub(crate) fn identify_token(
-        &self,
-        token: &SpannedToken,
-    ) -> Result<SpannedToken, IdentificationError> {
-        match token.kind {
-            None => {
-                let unidentified = self.unidentified.get(&token.start);
-
-                eprintln!("UNIDENTIFIED: {:?}", unidentified);
-
-                let p = match unidentified {
-                    Some(segment) => segment,
-                    None => return Err(IdentificationError::NoIdentificationNeeded),
-                };
-
-                let identified = self.tracer.get(p).unwrap_or(Tag::Type);
-
-                Ok(SpannedToken {
-                    kind: Some(identified),
-                    start: token.start,
-                    end: token.end,
-                })
-            }
-            Some(_) => Err(IdentificationError::AlreadyIdentified),
-        }
     }
 
     pub(crate) fn register_token(&mut self, token: &impl Spanned, _tag: Option<Tag>) {
@@ -174,11 +151,6 @@ impl<'a> RustHighlighter<'a> {
 
             self.remember_as(&p, tag);
         }
-    }
-
-    pub(crate) fn register_unidentified(&mut self, token: &Path) {
-        self.unidentified
-            .insert(token.span().byte_range().start, token.clone());
     }
 
     pub(crate) fn register_unidentified_ident(&mut self, token: &Ident) {

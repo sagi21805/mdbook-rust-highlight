@@ -218,17 +218,6 @@ impl Register for ExprCall {
         h.register(&self.attrs);
         h.register_as(&self.func, Some(Tag::Function));
         h.register(&self.args);
-        let token_position = self.span().byte_range();
-        // TODO Logic may be broken
-        for pos in token_position.start..token_position.end {
-            if let Some(unidentified) = h.unidentified.remove(&pos) {
-                if let Some(known) = h.tracer.get(&unidentified) {
-                    h.register_as(&unidentified, Some(known.clone()));
-                } else {
-                    h.register_unidentified(&unidentified);
-                }
-            }
-        }
     }
 }
 

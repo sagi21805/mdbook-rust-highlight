@@ -1,6 +1,6 @@
 use syn::{
     FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, Macro, Path,
-    PathSegment, Signature, Token, UseTree, Visibility, punctuated::Punctuated,
+    PathSegment, Signature, Token, Type, UseTree, Visibility, punctuated::Punctuated,
 };
 
 use crate::{
@@ -189,26 +189,24 @@ impl Register for ItemImpl {
             h.register_keyword_tag(for_token);
         }
         h.register(&self.self_ty);
-        h.register(&self.items);
-    }
-}
 
-impl Register for ImplItem {
-    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
-        match self {
-            ImplItem::Const(_token) => {}
-            ImplItem::Fn(token) => {
-                h.register(&token.attrs);
-                h.register(&token.vis);
-                h.register(&token.sig);
-                h.register(&token.block);
+        for item in &self.items {
+            match item {
+                ImplItem::Const(_token) => {}
+                ImplItem::Fn(token) => {
+                    h.register(&token.attrs);
+                    h.register(&token.vis);
+                    h.register(&token.sig);
+                    h.register(&token.block);
+                }
+
+                ImplItem::Macro(token) => {
+                    h.register_as(&token.mac, Some(Tag::Macro));
+                }
+                ImplItem::Type(_token) => {}
+                ImplItem::Verbatim(_) => {}
+                _ => {}
             }
-            ImplItem::Macro(token) => {
-                h.register_as(&token.mac, Some(Tag::Macro));
-            }
-            ImplItem::Type(_token) => {}
-            ImplItem::Verbatim(_) => {}
-            _ => {}
         }
     }
 }

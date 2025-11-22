@@ -2,7 +2,7 @@ use crate::{
     highlighter::{Register, RustHighlighter},
     tokens::Tag,
 };
-use syn::{Path, PathArguments, PathSegment, QSelf};
+use syn::{Path, PathArguments, PathSegment, QSelf, punctuated::Punctuated};
 
 impl Register for PathArguments {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
@@ -54,11 +54,24 @@ impl Register for Path {
         }
 
         if let Some(seg) = last_segment {
-            if let Some(known) = h.tracer.get(self) {
-                h.register_as(seg, Some(known));
-            } else {
-                h.register_as(seg, _tag);
+            if let Some(tag) = h.tracer.manual.get(seg.ident.to_string().as_str()) {
+                h.register_as(seg, Some(tag.clone()));
+                return;
             }
+            if let Some(tag) = _tag {
+                h.register_as(seg, Some(tag));
+                h.tracer.map(self, tag);
+                return;
+            }
+            if let Some(tag) = h.tracer.get(self) {
+                h.register_as(seg, Some(tag));
+                return;
+            }
+            let path = Path {
+                leading_colon: None,
+                segments: Punctuated::from_iter(vec![seg.clone()]),
+            };
+            h.register_as(seg, h.tracer.get(&path));
         }
     }
 }

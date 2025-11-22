@@ -1,12 +1,13 @@
 use std::{
     collections::{BTreeMap, HashMap},
+    path::Path,
     str::FromStr,
 };
 
 use crate::{
     highlighter::{
         RustHighlighter,
-        path_tracer::{PathTracer, SearchStep},
+        path_tracer::{PathNode, PathTracer},
     },
     tokens::Tag,
 };
@@ -17,6 +18,7 @@ use mdbook::{
 };
 use regex::Regex;
 use ropey::Rope;
+use syn::token::Enum;
 
 pub struct RustHighlighterPreprocessor;
 
@@ -32,15 +34,15 @@ impl Preprocessor for RustHighlighterPreprocessor {
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
         let mut tracer = PathTracer::new();
 
-        self.process_configuration(ctx, &mut tracer.0[0]);
+        self.process_configuration(ctx, &mut tracer.manual);
 
         // Maybe turn into an initialize function.
-        tracer.0[0].insert("Ok", SearchStep::Tag(Tag::Enum));
-        tracer.0[0].insert("Some", SearchStep::Tag(Tag::Enum));
-        tracer.0[0].insert("None", SearchStep::Tag(Tag::Enum));
-        tracer.0[0].insert("Err", SearchStep::Tag(Tag::Enum));
-        tracer.0[0].insert("self", SearchStep::Tag(Tag::Keyword));
-        tracer.0[0].insert("Self", SearchStep::Tag(Tag::Keyword));
+        tracer.manual.insert("Ok", Tag::Enum);
+        tracer.manual.insert("Some", Tag::Enum);
+        tracer.manual.insert("None", Tag::Enum);
+        tracer.manual.insert("Err", Tag::Enum);
+        tracer.manual.insert("self", Tag::Keyword);
+        tracer.manual.insert("Self", Tag::Keyword);
 
         let mut highlighter = RustHighlighter::new(&mut tracer);
 
@@ -54,9 +56,6 @@ impl Preprocessor for RustHighlighterPreprocessor {
                 Self::write_codeblock(chapter, registered_blocks);
             }
         });
-
-        eprintln!("{:#?}", tracer);
-
         Ok(book)
     }
 }
@@ -130,7 +129,7 @@ impl RustHighlighterPreprocessor {
     fn process_configuration(
         &self,
         ctx: &PreprocessorContext,
-        map: &mut HashMap<&'static str, SearchStep>,
+        map: &mut HashMap<&'static str, Tag>,
     ) {
         let cfg = ctx
             .config
@@ -142,7 +141,7 @@ impl RustHighlighterPreprocessor {
                     let leaked: &'static str = k.clone().leak();
                     let tag = Tag::from_str(v.as_str().expect("Tag in not string"))
                         .expect("Tag is no valid");
-                    map.insert(leaked, SearchStep::Tag(tag));
+                    map.insert(leaked, tag);
                 }
             }
         }
