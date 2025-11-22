@@ -9,7 +9,7 @@ homepage = "https://github.com/sagi21805/mdbook-rust-highlight"
 repository = "https://github.com/sagi21805/mdbook-rust-highlight"
 
 [dependencies]
-syn = { version = "2.0", features = ["full", "visit"] }
+syn = { version = "2.0", features = ["full", "visit", "extra-traits"] }
 ropey = "1.6.1"
 proc-macro2 = { version = "1", default-features = false, features = [
     "span-locations",

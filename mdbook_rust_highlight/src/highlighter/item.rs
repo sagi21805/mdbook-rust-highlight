@@ -1,6 +1,6 @@
 use syn::{
-    FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, Macro,
-    Signature, UseTree, Visibility,
+    FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, Macro, Path,
+    PathSegment, Signature, Token, UseTree, Visibility, punctuated::Punctuated,
 };
 
 use crate::{
@@ -84,6 +84,25 @@ impl Register for ItemEnum {
         for variant in &self.variants {
             h.register_enum_tag(&variant.ident);
             h.register(&variant.attrs);
+
+            let mut segments = Punctuated::<PathSegment, Token![::]>::new();
+            segments.push(PathSegment {
+                ident: self.ident.clone(),
+                arguments: syn::PathArguments::None,
+            });
+            segments.push(PathSegment {
+                ident: variant.ident.clone(),
+                arguments: syn::PathArguments::None,
+            });
+
+            h.remember_as(
+                &Path {
+                    leading_colon: None,
+                    segments,
+                },
+                Tag::Enum,
+            );
+
             if let Some((_, discriminant)) = &variant.discriminant {
                 h.register(discriminant);
             }

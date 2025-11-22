@@ -53,9 +53,12 @@ impl Register for Path {
             }
         }
 
-        let known = h.tracer.get(self);
-        if let (Some(tag), Some(seg)) = (known, last_segment) {
-            h.register_as(seg, Some(tag));
+        if let Some(seg) = last_segment {
+            if let Some(known) = h.tracer.get(self) {
+                h.register_as(seg, Some(known));
+            } else {
+                h.register_as(seg, _tag);
+            }
         }
     }
 }

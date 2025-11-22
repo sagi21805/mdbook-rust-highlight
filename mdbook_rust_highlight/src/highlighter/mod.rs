@@ -59,13 +59,13 @@ impl<T: Register, P> Register for Punctuated<T, P> {
         }
     }
 }
-pub struct RustHighlighter {
+pub struct RustHighlighter<'a> {
     token_set: BTreeSet<SpannedToken>,
     unidentified: HashMap<usize, Path>,
-    tracer: PathTracer,
+    tracer: &'a mut PathTracer,
 }
 
-impl RustHighlighter {
+impl<'a> RustHighlighter<'a> {
     pub fn highlight(&mut self, code: &str) -> String {
         let code = self.register_boring(code);
 
@@ -99,7 +99,7 @@ impl RustHighlighter {
     }
 }
 
-impl RustHighlighter {
+impl<'a> RustHighlighter<'a> {
     pub(crate) fn write_tokens(&mut self, code: String) -> String {
         let html_corrected = code; //.replace("<", "&lt;").replace(">", "&gt;");
         let mut output = Rope::from_str(&html_corrected);
@@ -133,6 +133,9 @@ impl RustHighlighter {
         match token.kind {
             None => {
                 let unidentified = self.unidentified.get(&token.start);
+
+                eprintln!("UNIDENTIFIED: {:?}", unidentified);
+
                 let p = match unidentified {
                     Some(segment) => segment,
                     None => return Err(IdentificationError::NoIdentificationNeeded),
@@ -171,6 +174,11 @@ impl RustHighlighter {
 
             self.remember_as(&p, tag);
         }
+    }
+
+    pub(crate) fn register_unidentified(&mut self, token: &Path) {
+        self.unidentified
+            .insert(token.span().byte_range().start, token.clone());
     }
 
     pub(crate) fn register_unidentified_ident(&mut self, token: &Ident) {
@@ -222,8 +230,8 @@ impl RustHighlighter {
     }
 }
 
-impl RustHighlighter {
-    pub fn new(tracer: PathTracer) -> Self {
+impl<'a> RustHighlighter<'a> {
+    pub fn new(tracer: &'a mut PathTracer) -> Self {
         Self {
             token_set: BTreeSet::new(),
             unidentified: HashMap::new(),

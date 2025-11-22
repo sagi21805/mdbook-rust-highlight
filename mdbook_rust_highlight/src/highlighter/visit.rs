@@ -2,7 +2,7 @@ use syn::{Item, visit::Visit};
 
 use crate::highlighter::RustHighlighter;
 
-impl<'ast> Visit<'ast> for RustHighlighter {
+impl<'ast, 'a> Visit<'ast> for RustHighlighter<'a> {
     fn visit_item(&mut self, i: &Item) {
         self.register(i);
     }

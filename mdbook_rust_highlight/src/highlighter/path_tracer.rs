@@ -1,6 +1,7 @@
 use crate::tokens::Tag;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
 pub enum SearchStep {
     Next(usize),
     Tag(Tag),
@@ -8,6 +9,7 @@ pub enum SearchStep {
 
 pub type Node = HashMap<&'static str, SearchStep>;
 
+#[derive(Debug, Clone)]
 pub struct PathTracer(pub Vec<Node>);
 
 impl PathTracer {
@@ -30,7 +32,10 @@ impl PathTracer {
             let maybe_new = match self.0[current_idx].get(seg_str.as_str()) {
                 Some(a) => match a {
                     SearchStep::Next(next) => Some(*next),
-                    SearchStep::Tag(_) => unreachable!(),
+                    SearchStep::Tag(_) => {
+                        eprintln!("\nERROR REACHED HERE: {:?}\n", a);
+                        None
+                    }
                 },
                 None => None,
             };
@@ -41,7 +46,7 @@ impl PathTracer {
                 let new = self.0.len();
                 self.0.push(Node::new());
 
-                self.0[new].insert(seg_str.leak(), SearchStep::Next(new));
+                // self.0[new].insert(seg_str.leak(), SearchStep::Next(new));
                 new
             };
             current_idx = new;
@@ -49,7 +54,9 @@ impl PathTracer {
 
         let n = &mut self.0[current_idx];
 
-        n.insert(last.ident.to_string().leak(), SearchStep::Tag(tag));
+        let a = n.insert(last.ident.to_string().leak(), SearchStep::Tag(tag));
+
+        eprintln!("ALREADY MAPPED: {:?}", a);
     }
 
     pub fn get(&self, p: &syn::Path) -> Option<Tag> {

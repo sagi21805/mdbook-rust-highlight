@@ -11,13 +11,12 @@ use crate::{
     tokens::Tag,
 };
 use mdbook::{
-    BookItem, Config,
+    BookItem,
     book::{Book, Chapter},
     preprocess::{Preprocessor, PreprocessorContext},
 };
 use regex::Regex;
 use ropey::Rope;
-use syn::Ident;
 
 pub struct RustHighlighterPreprocessor;
 
@@ -43,7 +42,7 @@ impl Preprocessor for RustHighlighterPreprocessor {
         tracer.0[0].insert("self", SearchStep::Tag(Tag::Keyword));
         tracer.0[0].insert("Self", SearchStep::Tag(Tag::Keyword));
 
-        let mut highlighter = RustHighlighter::new(tracer);
+        let mut highlighter = RustHighlighter::new(&mut tracer);
 
         // Regex matches entire Rust code blocks including fences
         let block_pat = Regex::new(HLRS_CODEBLOCK_REGEX).unwrap();
@@ -55,6 +54,9 @@ impl Preprocessor for RustHighlighterPreprocessor {
                 Self::write_codeblock(chapter, registered_blocks);
             }
         });
+
+        eprintln!("{:#?}", tracer);
+
         Ok(book)
     }
 }

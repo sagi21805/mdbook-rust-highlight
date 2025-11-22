@@ -86,7 +86,7 @@ pub fn register_variants(input: TokenStream) -> TokenStream {
     });
 
     let expanded = quote! {
-        impl RustHighlighter {
+        impl<'a> RustHighlighter<'a> {
             #(#methods)*
         }
     };
