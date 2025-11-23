@@ -1,5 +1,3 @@
-use core::panic;
-
 use proc_macro2::{Group, TokenStream};
 use syn::{File, visit::Visit};
 

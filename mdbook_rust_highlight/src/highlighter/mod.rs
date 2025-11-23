@@ -1,11 +1,14 @@
 use crate::{
-    highlighter::{error::IdentificationError, path_tracer::PathTracer},
+    highlighter::path_tracer::PathTracer,
     tokens::{SpannedToken, Tag},
 };
+use mdbook::theme::REDIRECT;
 use regex::Regex;
 use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
-use syn::{File, Ident, Path, PathSegment, punctuated::Punctuated, spanned::Spanned, visit::Visit};
+use syn::{
+    File, Ident, Index, Path, PathSegment, punctuated::Punctuated, spanned::Spanned, visit::Visit,
+};
 
 pub mod attr;
 pub mod error;
@@ -69,8 +72,18 @@ impl<'a> RustHighlighter<'a> {
     pub fn highlight(&mut self, code: &str) -> String {
         let code = self.register_boring(code);
 
+        let mut without = code.clone();
+        let bytes = unsafe { without.as_bytes_mut() };
+        if bytes[0] == b'>' && !bytes.is_empty() {
+            bytes[0] = b' ';
+        }
+        for i in 0..bytes.len().saturating_sub(1) {
+            if bytes[i] == b'\n' && bytes[i + 1] == b'>' {
+                bytes[i + 1] = b' ';
+            }
+        }
         let syntax_tree: File =
-            syn::parse_str(&code).expect(&format!("Failed to parse Rust code\n{}", code));
+            syn::parse_str(&without).expect(&format!("Failed to parse Rust code\n{}", code));
 
         self.visit_file(&syntax_tree);
         self.register_comments(&code);
