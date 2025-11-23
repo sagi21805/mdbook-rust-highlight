@@ -2,7 +2,7 @@ use syn::{
     Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprConst, ExprField,
     ExprForLoop, ExprIf, ExprIndex, ExprLit, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall,
     ExprParen, ExprPath, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTuple,
-    ExprUnary, ExprUnsafe, Lit, Member, spanned::Spanned,
+    ExprUnary, ExprUnsafe, Lit, Member,
 };
 
 use crate::{

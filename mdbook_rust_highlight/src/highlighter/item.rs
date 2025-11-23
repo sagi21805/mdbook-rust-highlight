@@ -1,6 +1,6 @@
 use syn::{
     FnArg, ImplItem, Item, ItemEnum, ItemFn, ItemImpl, ItemMacro, ItemStruct, ItemUse, Macro, Path,
-    PathSegment, Signature, Token, Type, UseTree, Visibility, punctuated::Punctuated,
+    PathSegment, Signature, Token, UseTree, Visibility, punctuated::Punctuated,
 };
 
 use crate::{

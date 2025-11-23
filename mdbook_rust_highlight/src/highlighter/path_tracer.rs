@@ -1,5 +1,5 @@
 use crate::tokens::Tag;
-use std::{collections::HashMap, hash::Hash, vec};
+use std::{collections::HashMap, vec};
 
 #[derive(Debug, Clone)]
 pub struct PathNode {

@@ -2,13 +2,10 @@ use crate::{
     highlighter::path_tracer::PathTracer,
     tokens::{SpannedToken, Tag},
 };
-use mdbook::theme::REDIRECT;
 use regex::Regex;
 use ropey::Rope;
 use std::collections::{BTreeSet, HashMap};
-use syn::{
-    File, Ident, Index, Path, PathSegment, punctuated::Punctuated, spanned::Spanned, visit::Visit,
-};
+use syn::{File, Ident, Path, PathSegment, punctuated::Punctuated, spanned::Spanned, visit::Visit};
 
 pub mod attr;
 pub mod error;

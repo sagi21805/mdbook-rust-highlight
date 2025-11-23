@@ -1,14 +1,10 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    path::Path,
     str::FromStr,
 };
 
 use crate::{
-    highlighter::{
-        RustHighlighter,
-        path_tracer::{PathNode, PathTracer},
-    },
+    highlighter::{RustHighlighter, path_tracer::PathTracer},
     tokens::Tag,
 };
 use mdbook::{
@@ -18,7 +14,6 @@ use mdbook::{
 };
 use regex::Regex;
 use ropey::Rope;
-use syn::token::Enum;
 
 pub struct RustHighlighterPreprocessor;
 
