@@ -61,7 +61,6 @@ impl<T: Register, P> Register for Punctuated<T, P> {
 }
 pub struct RustHighlighter<'a> {
     token_set: BTreeSet<SpannedToken>,
-    unidentified: HashMap<usize, Path>,
     tracer: &'a mut PathTracer,
 }
 
@@ -115,7 +114,7 @@ impl<'a> RustHighlighter<'a> {
         let mut tok_offset: usize = 0;
         let mut set_iterator = self.token_set.iter();
 
-        let re_global = Regex::new(r"^[A-Z]+(?:_[A-Z]+)*$").unwrap();
+        let re_global = Regex::new(r"^[A-Z0-9]+(?:_[A-Z0-9]+)*$").unwrap();
 
         while let Some(token) = set_iterator.next() {
             let tag = token
@@ -132,7 +131,6 @@ impl<'a> RustHighlighter<'a> {
             tok_offset += tag.len();
         }
         self.token_set.clear();
-        self.unidentified.clear();
         output.to_string()
     }
 
@@ -146,8 +144,8 @@ impl<'a> RustHighlighter<'a> {
     }
 
     pub(crate) fn register_ident(&mut self, token: &Ident, _tag: Option<Tag>) {
+        self.register_token(token, _tag);
         if let Some(tag) = _tag {
-            self.register_token(token, Some(tag));
             let mut segments = Punctuated::new();
             segments.push(PathSegment {
                 ident: token.clone(),
@@ -161,24 +159,6 @@ impl<'a> RustHighlighter<'a> {
 
             self.remember_as(&p, tag);
         }
-    }
-
-    pub(crate) fn register_unidentified_ident(&mut self, token: &Ident) {
-        self.register_token(token, None);
-
-        let mut segment = Punctuated::new();
-        segment.push(PathSegment {
-            ident: token.clone(),
-            arguments: syn::PathArguments::None,
-        });
-
-        self.unidentified.insert(
-            token.span().byte_range().start,
-            Path {
-                leading_colon: None,
-                segments: segment,
-            },
-        );
     }
 
     pub(crate) fn register_comments(&mut self, code: &str) {
@@ -216,7 +196,6 @@ impl<'a> RustHighlighter<'a> {
     pub fn new(tracer: &'a mut PathTracer) -> Self {
         Self {
             token_set: BTreeSet::new(),
-            unidentified: HashMap::new(),
             tracer,
         }
     }
