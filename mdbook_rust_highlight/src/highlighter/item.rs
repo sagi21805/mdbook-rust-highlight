@@ -131,7 +131,7 @@ impl Register for UseTree {
                 h.register(&token.tree);
             }
             UseTree::Name(token) => {
-                h.register_unidentified_ident((&token.ident).into());
+                h.register_ident(&token.ident, None);
             }
             UseTree::Rename(token) => {
                 h.register_segment_tag(&token.ident);

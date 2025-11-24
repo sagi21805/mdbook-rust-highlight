@@ -21,7 +21,7 @@ impl Register for PathSegment {
         if let Some(tag) = _tag {
             h.register_ident(&self.ident, Some(tag));
         } else {
-            h.register_unidentified_ident(&self.ident);
+            h.register_ident(&self.ident, None);
         }
     }
 }
