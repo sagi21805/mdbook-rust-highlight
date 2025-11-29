@@ -86,6 +86,13 @@ impl RustHighlighterPreprocessor {
     }
 
     fn write_codeblock(chapter: &mut Chapter, registered_blocks: BTreeMap<usize, (usize, String)>) {
+        // Find non ascii because it causes bugs
+        for (i, c) in chapter.content.chars().enumerate() {
+            if !c.is_ascii() {
+                panic!("Found non ascii character: {c} at: {i}")
+            }
+        }
+
         let mut chap_rope = Rope::from_str(&chapter.content);
         let mut offset = 0;
         for (start, (end, replacement)) in registered_blocks {
