@@ -36,6 +36,7 @@ impl Register for Item {
 impl Register for ItemImplConst {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register_keyword_tag(&self.impl_token);
+        h.register(&self.generics);
         h.try_register_keyword_tag(self.constness.as_ref());
         if let Some((_, trait_name, for_token)) = &self.trait_ {
             h.register_as(trait_name, Some(Tag::Type));

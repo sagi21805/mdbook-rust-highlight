@@ -4,12 +4,13 @@ use syn::{
     token,
 };
 
+#[derive(Debug)]
 pub struct ItemImplConst {
     pub attrs: Vec<Attribute>,
     pub defaultness: Option<Token![default]>,
     pub impl_token: Token![impl],
-    pub constness: Option<Token![const]>,
     pub generics: Generics,
+    pub constness: Option<Token![const]>,
     /// Trait this impl implements.
     pub trait_: Option<(Option<Token![!]>, Path, Token![for])>,
     /// The Self type of the impl.
@@ -27,12 +28,12 @@ impl Parse for ItemImplConst {
             None
         };
         let impl_token: Token![impl] = input.parse()?;
+        let mut generics: Generics = input.parse()?;
         let constness: Option<Token![const]> = if input.peek(Token![const]) {
             Some(input.parse()?)
         } else {
             None
         };
-        let mut generics: Generics = input.parse()?;
         let trait_;
         let self_ty;
         let polarity: Option<Token![!]> = if input.peek(Token![!]) {

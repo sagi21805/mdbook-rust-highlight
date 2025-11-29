@@ -1,5 +1,6 @@
 use syn::{
-    ReturnType, Type, TypeArray, TypeImplTrait, TypePath, TypePtr, TypeReference, TypeTuple,
+    ReturnType, Type, TypeArray, TypeImplTrait, TypeInfer, TypeNever, TypePath, TypePtr,
+    TypeReference, TypeSlice, TypeTuple,
 };
 
 use crate::{
@@ -16,8 +17,31 @@ impl Register for Type {
             Type::Tuple(token) => h.register_as(token, _tag),
             Type::Ptr(token) => h.register_as(token, _tag),
             Type::ImplTrait(token) => h.register_as(token, _tag),
+            Type::Never(token) => h.register(token),
+            Type::Infer(token) => h.register(token),
+            Type::Slice(token) => h.register(token),
             _ => {}
         }
+    }
+}
+
+impl Register for TypeSlice {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.elem)
+    }
+}
+
+impl Register for TypeNever {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        let range = self.bang_token.span.byte_range();
+        h.register_at(range.start, range.end, Some(Tag::Type));
+    }
+}
+
+impl Register for TypeInfer {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        let range = self.underscore_token.span.byte_range();
+        h.register_at(range.start, range.end, Some(Tag::Variable));
     }
 }
 
@@ -48,7 +72,8 @@ impl Register for TypeReference {
 impl Register for TypePath {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.qself);
-        h.register_as(&self.path, Some(Tag::Type));
+        // Currently not registering as type knowingly
+        h.register(&self.path);
     }
 }
 

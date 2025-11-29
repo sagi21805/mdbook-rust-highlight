@@ -137,6 +137,7 @@ impl Register for GenericArgument {
         match self {
             GenericArgument::Type(token) => h.register_as(token, _tag),
             GenericArgument::Lifetime(token) => h.register_lifetime_tag(token),
+            GenericArgument::Const(token) => h.register(token),
             _ => {}
         }
     }

@@ -1,8 +1,8 @@
 use syn::{
-    Arm, Expr, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprConst, ExprField,
-    ExprForLoop, ExprIf, ExprIndex, ExprLit, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall,
-    ExprParen, ExprPath, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTuple,
-    ExprUnary, ExprUnsafe, Lit, Member,
+    Arm, Expr, ExprArray, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprConst,
+    ExprField, ExprForLoop, ExprIf, ExprIndex, ExprLit, ExprLoop, ExprMacro, ExprMatch,
+    ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprRepeat, ExprReturn, ExprStruct,
+    ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member,
 };
 
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
 impl Register for Expr {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         match self {
-            // Expr::Array(token) => h.register_as(token, _tag),
+            Expr::Array(token) => h.register_as(token, _tag),
             Expr::Assign(token) => h.register_as(token, _tag),
             // Expr::Async(token) => h.register_as(token, _tag),
             // Expr::Await(token) => h.register_as(token, _tag),
@@ -54,6 +54,13 @@ impl Register for Expr {
             Expr::Unsafe(token) => h.register_as(token, _tag),
             _ => {}
         }
+    }
+}
+
+impl Register for ExprArray {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register(&self.elems);
     }
 }
 

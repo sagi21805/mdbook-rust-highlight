@@ -67,9 +67,9 @@ pub struct RustHighlighter<'a> {
 
 impl<'a> RustHighlighter<'a> {
     pub fn highlight(&mut self, code: &str) -> String {
-        let code = self.register_boring(code);
+        // let code = self.register_boring(code);
 
-        let mut without = code.clone();
+        let mut without = code.to_string();
         let bytes = unsafe { without.as_bytes_mut() };
         if bytes[0] == b'>' && !bytes.is_empty() {
             bytes[0] = b' ';
@@ -82,6 +82,7 @@ impl<'a> RustHighlighter<'a> {
         let syntax_tree: File = syn::parse_str(&without)
             .unwrap_or_else(|_| panic!("Failed to parse Rust code\n{}", code));
         self.visit_file(&syntax_tree);
+        let code = code.to_string();
         self.register_comments(&code);
         self.write_tokens(code)
     }
@@ -167,27 +168,27 @@ impl<'a> RustHighlighter<'a> {
         }
     }
 
-    pub(crate) fn register_boring(&mut self, code: &str) -> String {
-        // FIX BUG THAT IT WILL NOT WORK ON THE END OR START, AND ADD A WAY TO PROCESS MULTIPLE TOKEN
-        // MAYBE THE ORDERED SET INSTEAD OF MAP WILL SOLVE THIS.
-        // #(\s*)([^\[\n][^\n]*)
-        // let boring_regex = Regex::new(r"(?m)(#\s)(.*)$").unwrap();
-        let mut string_offset = 0;
-        let mut output = String::with_capacity(code.len());
-        for line in code.split_inclusive('\n') {
-            if let Some(hash_position) = line.find("# ") {
-                let after_hash = &line[(hash_position + 2)..];
-                let start = string_offset + hash_position;
-                let end = string_offset + line.len() - 2;
-                output.push_str(after_hash);
-                self.register_at(start, end, Some(Tag::Boring));
-            } else {
-                output.push_str(line);
-            }
-            string_offset += line.len() - 2;
-        }
-        output
-    }
+    // pub(crate) fn register_boring(&mut self, code: &str) -> String {
+    //     // FIX BUG THAT IT WILL NOT WORK ON THE END OR START, AND ADD A WAY TO PROCESS MULTIPLE TOKEN
+    //     // MAYBE THE ORDERED SET INSTEAD OF MAP WILL SOLVE THIS.
+    //     // #(\s*)([^\[\n][^\n]*)
+    //     // let boring_regex = Regex::new(r"(?m)(#\s)(.*)$").unwrap();
+    //     let mut string_offset = 0;
+    //     let mut output = String::with_capacity(code.len());
+    //     for line in code.split_inclusive('\n') {
+    //         if let Some(hash_position) = line.find("# ") {
+    //             let after_hash = &line[(hash_position + 2)..];
+    //             let start = string_offset + hash_position;
+    //             let end = string_offset + line.len() - 2;
+    //             output.push_str(after_hash);
+    //             self.register_at(start, end, Some(Tag::Boring));
+    //         } else {
+    //             output.push_str(line);
+    //         }
+    //         string_offset += line.len() - 2;
+    //     }
+    //     output
+    // }
 }
 
 impl<'a> RustHighlighter<'a> {
