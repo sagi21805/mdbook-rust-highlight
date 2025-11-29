@@ -4,7 +4,10 @@ use syn::{
 };
 
 use crate::{
-    highlighter::{Register, RustHighlighter, macro_parsers::remove_hash},
+    highlighter::{
+        Register, RustHighlighter, macro_parsers::remove_hash,
+        unstable_features::impl_const::ItemImplConst,
+    },
     tokens::Tag,
 };
 
@@ -19,7 +22,44 @@ impl Register for Item {
             Item::Struct(token) => h.register_as(token, _tag),
             Item::Static(token) => h.register_as(token, _tag),
             Item::Const(token) => h.register_as(token, _tag),
+            Item::Verbatim(stream) => {
+                let item = syn::parse2::<ItemImplConst>(stream.clone());
+                if let Ok(const_impl) = item {
+                    h.register_as(&const_impl, _tag)
+                }
+            }
             _ => {}
+        }
+    }
+}
+
+impl Register for ItemImplConst {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register_keyword_tag(&self.impl_token);
+        h.try_register_keyword_tag(self.constness.as_ref());
+        if let Some((_, trait_name, for_token)) = &self.trait_ {
+            h.register_as(trait_name, Some(Tag::Type));
+            h.register_keyword_tag(for_token);
+        }
+        h.register(&self.self_ty);
+
+        for item in &self.items {
+            match item {
+                ImplItem::Const(_token) => {}
+                ImplItem::Fn(token) => {
+                    h.register(&token.attrs);
+                    h.register(&token.vis);
+                    h.register(&token.sig);
+                    h.register(&token.block);
+                }
+
+                ImplItem::Macro(token) => {
+                    h.register_as(&token.mac, Some(Tag::Macro));
+                }
+                ImplItem::Type(_token) => {}
+                ImplItem::Verbatim(_) => {}
+                _ => {}
+            }
         }
     }
 }

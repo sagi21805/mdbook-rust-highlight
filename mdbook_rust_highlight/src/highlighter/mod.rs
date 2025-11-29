@@ -20,6 +20,7 @@ pub mod path_tracer;
 pub mod statement;
 pub mod structure;
 pub mod ty;
+pub mod unstable_features;
 pub mod visit;
 
 pub trait Register: Sized {
@@ -80,7 +81,7 @@ impl<'a> RustHighlighter<'a> {
         }
         let syntax_tree: File = syn::parse_str(&without)
             .unwrap_or_else(|_| panic!("Failed to parse Rust code\n{}", code));
-
+        eprintln!("{:#?}", syntax_tree);
         self.visit_file(&syntax_tree);
         self.register_comments(&code);
         self.write_tokens(code)
