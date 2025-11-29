@@ -81,7 +81,6 @@ impl<'a> RustHighlighter<'a> {
         }
         let syntax_tree: File = syn::parse_str(&without)
             .unwrap_or_else(|_| panic!("Failed to parse Rust code\n{}", code));
-        eprintln!("{:#?}", syntax_tree);
         self.visit_file(&syntax_tree);
         self.register_comments(&code);
         self.write_tokens(code)
