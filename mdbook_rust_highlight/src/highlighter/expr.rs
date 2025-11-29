@@ -1,8 +1,8 @@
 use syn::{
     Arm, Expr, ExprArray, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprConst,
-    ExprField, ExprForLoop, ExprIf, ExprIndex, ExprLit, ExprLoop, ExprMacro, ExprMatch,
-    ExprMethodCall, ExprParen, ExprPath, ExprReference, ExprRepeat, ExprReturn, ExprStruct,
-    ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member,
+    ExprField, ExprForLoop, ExprIf, ExprIndex, ExprInfer, ExprLet, ExprLit, ExprLoop, ExprMacro,
+    ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat,
+    ExprReturn, ExprStruct, ExprTry, ExprTuple, ExprUnary, ExprUnsafe, Lit, Member,
 };
 
 use crate::{
@@ -31,7 +31,7 @@ impl Register for Expr {
             Expr::If(token) => h.register_as(token, _tag),
             Expr::Index(token) => h.register_as(token, _tag),
             // Expr::Infer(token) => h.register_as(token, _tag),
-            // Expr::Let(token) => h.register_as(token, _tag),
+            Expr::Let(token) => h.register_as(token, _tag),
             Expr::Lit(token) => h.register_as(token, _tag),
             Expr::Loop(token) => h.register_as(token, _tag),
             Expr::Macro(token) => h.register_as(token, _tag),
@@ -39,7 +39,7 @@ impl Register for Expr {
             Expr::MethodCall(token) => h.register_as(token, _tag),
             Expr::Paren(token) => h.register_as(token, _tag),
             Expr::Path(token) => h.register_as(token, _tag),
-            // Expr::Range(token) => h.register_as(token, _tag),
+            Expr::Range(token) => h.register_as(token, _tag),
             // Expr::RawAddr(token) => h.register_as(token, _tag),
             Expr::Reference(token) => h.register_as(token, _tag),
             Expr::Repeat(token) => h.register_as(token, _tag),
@@ -54,6 +54,31 @@ impl Register for Expr {
             Expr::Unsafe(token) => h.register_as(token, _tag),
             _ => {}
         }
+    }
+}
+
+impl Register for ExprLet {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register_keyword_tag(&self.let_token);
+        h.register_as(&self.pat, Some(Tag::Enum));
+        h.register(&self.expr);
+    }
+}
+
+impl Register for ExprInfer {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        let range = self.underscore_token.span.byte_range();
+        h.register_at(range.start, range.end, Some(Tag::Variable));
+    }
+}
+
+impl Register for ExprRange {
+    fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
+        h.register(&self.attrs);
+        h.register_as(&self.start, Some(Tag::Variable));
+        h.register_as(&self.end, Some(Tag::Variable));
     }
 }
 
@@ -163,7 +188,7 @@ impl Register for ExprUnsafe {
 impl Register for ExprMethodCall {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
-        h.register(&self.receiver);
+        h.register_as(&self.receiver, Some(Tag::Variable));
         h.register_function_tag(&self.method);
         h.register(&self.turbofish);
         h.register(&self.args);

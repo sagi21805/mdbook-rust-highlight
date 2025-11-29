@@ -202,11 +202,10 @@ impl Register for Macro {
             match segment.ident.to_string().as_str() {
                 "macro_rules" => macro_tag = Tag::Keyword,
                 "asm" => h.register_as(&self.tokens, Some(Tag::MacroAsm)),
-                "flag" | "println" | "eprintln" | "print" | "dbg" | "format" | "vec"
-                | "matches" | "panic" | "assert" | "assert_eq" | "include_str" | "concat"
-                | "stringify" | "env" | "option_env" | "parse_macro_input" | "format_ident" => {
-                    h.register_as(&self.tokens, Some(Tag::MacroExpr))
-                }
+                "flag" | "println" | "eprintln" | "okprintln" | "print" | "dbg" | "format"
+                | "vec" | "matches" | "panic" | "assert" | "assert_eq" | "include_str"
+                | "concat" | "stringify" | "env" | "option_env" | "parse_macro_input"
+                | "format_ident" => h.register_as(&self.tokens, Some(Tag::MacroExpr)),
                 "quote" => {
                     h.register_as(&remove_hash(self.tokens.clone()), Some(Tag::MacroCode));
                 }
@@ -220,10 +219,10 @@ impl Register for Macro {
 }
 
 impl Register for ItemImpl {
-    // TODO COMPLETE
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.try_register_keyword_tag(self.unsafety.as_ref());
         h.register_keyword_tag(&self.impl_token);
+        h.register(&self.generics);
         if let Some((_, trait_name, for_token)) = &self.trait_ {
             h.register_as(trait_name, Some(Tag::Type));
             h.register_keyword_tag(for_token);

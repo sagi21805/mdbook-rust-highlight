@@ -73,7 +73,7 @@ impl Register for TypePath {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.qself);
         // Currently not registering as type knowingly
-        h.register(&self.path);
+        h.register_as(&self.path, Some(Tag::Type));
     }
 }
 
