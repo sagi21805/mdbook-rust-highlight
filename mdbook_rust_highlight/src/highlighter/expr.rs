@@ -100,7 +100,7 @@ impl Register for ExprReturn {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         h.register(&self.attrs);
         h.register_keyword_tag(&self.return_token);
-        if let Some(expr) = self.expr.as_ref().map(|v| &**v) {
+        if let Some(expr) = self.expr.as_deref() {
             h.register(expr);
         }
     }

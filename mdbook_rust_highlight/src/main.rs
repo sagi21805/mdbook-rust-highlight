@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 pub mod highlighter;
 pub mod preprocessor;
 pub mod tokens;

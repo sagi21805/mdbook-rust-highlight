@@ -46,7 +46,7 @@ impl Register for Path {
         let mut segment_iter = self.segments.iter().rev();
         let last_segment = segment_iter.next();
         for segment in segment_iter {
-            if segment.ident.to_string() == "Self" {
+            if segment.ident == "Self" {
                 h.register_keyword_tag(segment);
             } else {
                 h.register_segment_tag(segment);
@@ -55,7 +55,7 @@ impl Register for Path {
 
         if let Some(seg) = last_segment {
             if let Some(tag) = h.tracer.manual.get(seg.ident.to_string().as_str()) {
-                h.register_as(seg, Some(tag.clone()));
+                h.register_as(seg, Some(*tag));
                 return;
             }
             if let Some(tag) = _tag {

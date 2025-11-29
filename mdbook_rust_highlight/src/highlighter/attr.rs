@@ -21,27 +21,23 @@ impl Register for Attribute {
                     h.register_as(path, Some(Tag::Const));
                 }
                 Meta::List(list) => {
-                    if list.path.get_ident().unwrap().to_string() == "unsafe" {
+                    if *list.path.get_ident().unwrap() == "unsafe" {
                         h.register_keyword_tag(&list.path);
                     } else {
                         h.register_as(&list.path, Some(Tag::Const));
                     }
                     let ident_list = syn::parse2::<ExprList>(list.tokens.clone());
-                    match ident_list {
-                        Ok(list) => {
-                            for item in &list.exprs {
-                                h.register(item);
-                            }
+
+                    if let Ok(list) = ident_list {
+                        for item in &list.exprs {
+                            h.register(item);
                         }
-                        _ => {}
                     }
+
                     let name_val = syn::parse2::<MetaNameValue>(list.tokens.clone());
-                    match name_val {
-                        Ok(name_val) => {
-                            h.register_variable_tag(&name_val.path.get_ident().unwrap());
-                            h.register_litstr_tag(&name_val.value);
-                        }
-                        _ => {}
+                    if let Ok(name_val) = name_val {
+                        h.register_variable_tag(name_val.path.get_ident().unwrap());
+                        h.register_litstr_tag(&name_val.value);
                     }
                 }
                 Meta::NameValue(name_val) => {
@@ -51,11 +47,8 @@ impl Register for Attribute {
             },
             AttrStyle::Inner(not) => {
                 h.register_attribute_tag(&not);
-                match &self.meta {
-                    Meta::Path(path) => {
-                        h.register_as(path, Some(Tag::Const));
-                    }
-                    _ => {}
+                if let Meta::Path(path) = &self.meta {
+                    h.register_as(path, Some(Tag::Const));
                 }
             }
         }

@@ -145,10 +145,9 @@ impl Register for UseTree {
 impl Register for ItemMacro {
     fn register_as(&self, h: &mut RustHighlighter, _tag: Option<Tag>) {
         if let Some(name) = self.ident.as_ref() {
-            h.register_ident(name.into(), Some(Tag::Macro));
-            match name.to_string().as_str() {
-                "table_entry_flags" => h.register_as(&self.mac.tokens, Some(Tag::MacroRulesCode)),
-                _ => {}
+            h.register_ident(name, Some(Tag::Macro));
+            if name == "table_entry_flags" {
+                h.register_as(&self.mac.tokens, Some(Tag::MacroRulesCode))
             }
         }
         h.register(&self.mac);

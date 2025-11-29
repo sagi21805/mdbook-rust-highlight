@@ -28,7 +28,7 @@ impl Parse for AsmArgs {
 pub enum AsmInput {
     Instruction(LitStr),
     Options(AsmOptions),
-    RegOperand(RegOperand),
+    RegOperand(Box<RegOperand>),
 }
 
 impl Parse for AsmInput {
@@ -55,7 +55,7 @@ pub struct AsmOptions {
 impl Parse for AsmOptions {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let option_token = input.parse::<Ident>()?;
-        if option_token.to_string() != "options" {
+        if option_token != "options" {
             return Err(syn::Error::new_spanned(
                 option_token,
                 "Expected ident to be options",
@@ -79,11 +79,11 @@ pub enum RegSpec {
 impl Parse for RegSpec {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         if input.peek(LitStr) {
-            return Ok(Self::ExplicitReg(input.parse()?));
+            Ok(Self::ExplicitReg(input.parse()?))
         } else if input.peek(Ident) {
-            return Ok(Self::RegClass(input.parse()?));
+            Ok(Self::RegClass(input.parse()?))
         } else {
-            return Err(input.error("Expected LitStr or Ident for RegSpec"));
+            Err(input.error("Expected LitStr or Ident for RegSpec"))
         }
     }
 }
@@ -178,15 +178,13 @@ impl Parse for ExprOperand {
             }));
         }
         let ident = input.parse::<Ident>()?;
-        if input.peek(Ident) {
-            if ident == "sym" {
-                return Ok(Self::Symbol(ExprSym {
-                    sym_token: ident,
-                    expr: input.parse()?,
-                }));
-            }
+        if input.peek(Ident) && ident == "sym" {
+            return Ok(Self::Symbol(ExprSym {
+                sym_token: ident,
+                expr: input.parse()?,
+            }));
         }
-        return Err(input.error("Expected Operand, Symbol, Const or Label"));
+        Err(input.error("Expected Operand, Symbol, Const or Label"))
     }
 }
 
@@ -206,7 +204,7 @@ impl Parse for RegOperand {
             None
         };
         Ok(RegOperand {
-            param_eq: param_eq,
+            param_eq,
             expr: input.parse()?,
         })
     }

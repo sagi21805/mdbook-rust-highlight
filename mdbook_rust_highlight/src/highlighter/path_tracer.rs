@@ -15,14 +15,16 @@ pub struct PathTracer {
     pub learned: Vec<Node>,
 }
 
-impl PathTracer {
-    pub fn new() -> Self {
+impl Default for PathTracer {
+    fn default() -> Self {
         Self {
             manual: HashMap::new(),
             learned: vec![Node::new()],
         }
     }
+}
 
+impl PathTracer {
     pub fn map(&mut self, p: &syn::Path, tag: Tag) {
         let mut current_idx = 0;
 

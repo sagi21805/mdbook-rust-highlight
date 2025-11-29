@@ -27,7 +27,7 @@ impl Preprocessor for RustHighlighterPreprocessor {
         "rust-highlight"
     }
     fn run(&self, ctx: &PreprocessorContext, mut book: Book) -> mdbook::errors::Result<Book> {
-        let mut tracer = PathTracer::new();
+        let mut tracer = PathTracer::default();
 
         self.process_configuration(ctx, &mut tracer.manual);
 
@@ -118,7 +118,7 @@ impl RustHighlighterPreprocessor {
             feature_string.push_str(" icon=");
             feature_string.push_str(RUST_ICON_URL);
         }
-        return feature_string;
+        feature_string
     }
 
     fn process_configuration(
@@ -130,14 +130,14 @@ impl RustHighlighterPreprocessor {
             .config
             .get(&format!("preprocessor.{}", self.name()))
             .expect("No configuration provided for preprocessor");
-        if let Some(v) = cfg.get("mapping") {
-            if let Some(mapping) = v.as_table() {
-                for (k, v) in mapping {
-                    let leaked: &'static str = k.clone().leak();
-                    let tag = Tag::from_str(v.as_str().expect("Tag in not string"))
-                        .expect("Tag is no valid");
-                    map.insert(leaked, tag);
-                }
+        if let Some(v) = cfg.get("mapping")
+            && let Some(mapping) = v.as_table()
+        {
+            for (k, v) in mapping {
+                let leaked: &'static str = k.clone().leak();
+                let tag =
+                    Tag::from_str(v.as_str().expect("Tag in not string")).expect("Tag is no valid");
+                map.insert(leaked, tag);
             }
         }
     }

@@ -36,6 +36,7 @@ pub enum Tag {
     MacroRulesCode,
 }
 
+#[allow(clippy::to_string_trait_impl)]
 impl ToString for Tag {
     fn to_string(&self) -> String {
         match self {
@@ -53,20 +54,21 @@ pub struct SpannedToken {
     pub(crate) kind: Option<Tag>,
 }
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for SpannedToken {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        (self.start, Reverse(self.end), self.kind.clone()).partial_cmp(&(
+        (self.start, Reverse(self.end), self.kind).partial_cmp(&(
             other.start,
             Reverse(other.end),
-            other.kind.clone(),
+            other.kind,
         ))
     }
 }
 
 impl Ord for SpannedToken {
     fn cmp(&self, other: &Self) -> Ordering {
-        (self.start, Reverse(self.end), self.kind.clone())
-            .cmp(&(other.start, Reverse(other.end), other.kind.clone()))
+        (self.start, Reverse(self.end), self.kind)
+            .cmp(&(other.start, Reverse(other.end), other.kind))
             .then(Ordering::Greater)
     }
 }

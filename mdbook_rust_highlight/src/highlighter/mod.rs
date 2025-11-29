@@ -4,7 +4,7 @@ use crate::{
 };
 use regex::Regex;
 use ropey::Rope;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 use syn::{File, Ident, Path, PathSegment, punctuated::Punctuated, spanned::Spanned, visit::Visit};
 
 pub mod attr;
@@ -78,8 +78,8 @@ impl<'a> RustHighlighter<'a> {
                 bytes[i + 1] = b' ';
             }
         }
-        let syntax_tree: File =
-            syn::parse_str(&without).expect(&format!("Failed to parse Rust code\n{}", code));
+        let syntax_tree: File = syn::parse_str(&without)
+            .unwrap_or_else(|_| panic!("Failed to parse Rust code\n{}", code));
 
         self.visit_file(&syntax_tree);
         self.register_comments(&code);
@@ -112,11 +112,9 @@ impl<'a> RustHighlighter<'a> {
     pub(crate) fn write_tokens(&mut self, code: String) -> String {
         let mut output = Rope::from_str(&code);
         let mut tok_offset: usize = 0;
-        let mut set_iterator = self.token_set.iter();
-
         let re_global = Regex::new(r"^[A-Z0-9]+(?:_[A-Z0-9]+)*$").unwrap();
 
-        while let Some(token) = set_iterator.next() {
+        for token in &self.token_set {
             let tag = token
                 .kind
                 .unwrap_or_else(|| {
