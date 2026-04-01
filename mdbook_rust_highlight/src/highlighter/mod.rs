@@ -113,7 +113,7 @@ impl<'a> RustHighlighter<'a> {
     pub(crate) fn write_tokens(&mut self, code: String) -> String {
         let mut output = Rope::from_str(&code);
         let mut tok_offset: usize = 0;
-        let re_global = Regex::new(r"^[A-Z0-9]+(?:_[A-Z0-9]+)*$").unwrap();
+        let re_global = Regex::new(r"\b[A-Z0-9]+(?:_[A-Z0-9]+)*\b").unwrap();
 
         for token in &self.token_set {
             let tag = token
